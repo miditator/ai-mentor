@@ -7,15 +7,78 @@
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <link rel="stylesheet" href="frontend/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-    <div id="screen-loading" class="screen active">...</div>
-    <div id="screen-onboarding" class="screen">...</div>
-    <div id="screen-main" class="screen">...</div>
+    <div id="screen-loading" class="screen active">
+        <div class="loader">
+            <span style="font-size: 40px;">⏳</span>
+            <p>Загрузка ИИ-Ментора...</p>
+        </div>
+    </div>
 
-    <script src="frontend/js/api.js"></script>
-    <script src="frontend/js/onboarding.js"></script>
-    <script src="frontend/js/app.js"></script> </body>
+    <div id="screen-onboarding" class="screen">
+        <div class="card">
+            <span style="font-size: 44px;">🎓</span>
+            <h1 id="onboard-title">Выберите язык</h1>
+            <p id="onboard-subtitle">Шаг 1 из 2: Какой язык будем изучать?</p>
+
+            <div id="step-language" class="selector-group">
+                <button class="option-btn" onclick="selectLanguage('en')">
+                    <span>🇬🇧 Английский</span>
+                </button>
+                <button class="option-btn" onclick="selectLanguage('de')">
+                    <span>🇩🇪 Немецкий</span>
+                </button>
+            </div>
+
+            <div id="step-difficulty" class="selector-group" style="display: none;">
+                <button class="option-btn" onclick="selectDifficulty('1')">
+                    <span>🟢 Легкий (A1-A2)</span>
+                </button>
+                <button class="option-btn" onclick="selectDifficulty('2')">
+                    <span>🟡 Средний (B1-B2)</span>
+                </button>
+                <button class="option-btn" onclick="selectDifficulty('3')">
+                    <span>🔴 Сложный (C1-C2)</span>
+                </button>
+            </div>
+
+            <button id="btn-next" class="btn-primary" onclick="handleNextStep()" disabled>Далее</button>
+        </div>
+    </div>
+
+    <div id="screen-main" class="screen">
+        <div class="card">
+            <h1>🎓 Личный кабинет</h1>
+            <p>Привет, <span id="username" style="font-weight: bold; color: var(--text-color);">Пользователь</span>! 👋</p>
+
+            <hr style="border: 0; border-top: 1px solid var(--hint-color); margin: 20px 0; opacity: 0.3;">
+
+            <div class="info-row">
+                <span class="info-label">Изучаемый язык:</span>
+                <span class="info-value" id="user-lang">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Сложность:</span>
+                <span class="info-value" id="user-diff">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Слов в словаре:</span>
+                <span class="info-value" id="user-words">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Дневной лимит:</span>
+                <span class="info-value" id="user-limit">-</span>
+            </div>
+
+            <button class="btn-primary" style="margin-top: 24px;" onclick="tg.close()">Вернуться в чат</button>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/onboarding.js"></script>
+    <script src="js/app.js"></script>
+</body>
 </html>
