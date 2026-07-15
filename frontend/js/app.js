@@ -14,7 +14,6 @@ function switchScreen(screenId) {
 }
 
 // Заполнение профиля данными на главном экране
-// Заполнение профиля данными на главном экране
 function showProfileData(data) {
     const diffMap = {
         "A1": "Начальный (A1)",
