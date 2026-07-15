@@ -14,12 +14,21 @@ function switchScreen(screenId) {
 }
 
 // Заполнение профиля данными на главном экране
+// Заполнение профиля данными на главном экране
 function showProfileData(data) {
-    const diffMap = { "1": "Легкий (A1-A2)", "2": "Средний (B1-B2)", "3": "Сложный (C1-C2)" };
+    const diffMap = {
+        "A1": "Начальный (A1)",
+        "A2": "Элементарный (A2)",
+        "B1": "Средний (B1)",
+        "B2": "Выше среднего (B2)",
+        "C1": "Продвинутый (C1)"
+    };
     const langMap = { "en": "Английский 🇬🇧", "de": "Немецкий 🇩🇪" };
 
+    const rawDiff = data.difficulty;
+
     document.getElementById('user-lang').innerText = langMap[data.language] || data.language;
-    document.getElementById('user-diff').innerText = diffMap[data.difficulty] || data.difficulty;
+    document.getElementById('user-diff').innerText = diffMap[rawDiff] || rawDiff;
     document.getElementById('user-words').innerText = data.words_count;
     document.getElementById('user-limit').innerText = `${data.words_per_day} шт.`;
 }
