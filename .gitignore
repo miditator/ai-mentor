@@ -1,0 +1,16 @@
+# База данных
+*.mentor?bot.db
+*.sqlite3
+
+# Виртуальное окружение Python
+venv/
+.venv/
+env/
+
+# Кэш Python и PyCharm
+__pycache__/
+.idea/
+*.pyc
+
+# Локальные конфиги
+ngrok.yml
