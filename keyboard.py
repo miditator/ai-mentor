@@ -16,7 +16,7 @@ def get_main_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
     # 🔥 ТВОЯ ССЫЛКА ИЗ GITHUB PAGES (не забудь заменить на свою реальную ссылку!)
-    web_app = types.WebAppInfo(url="https://miditator.github.io/ai-mentor/?v=1.8")
+    web_app = types.WebAppInfo(url="https://miditator.github.io/ai-mentor/?v=1.9")
 
     btn_task = types.KeyboardButton(text="🎯 Новое задание")
     btn_add_word = types.KeyboardButton(text="➕ Добавить слово")

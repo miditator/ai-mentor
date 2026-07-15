@@ -13,106 +13,49 @@ def init_db():
 
     # 1. ТАБЛИЦА НАСТРОЕК ПОЛЬЗОВАТЕЛЯ
     cursor.execute('''
-                   CREATE TABLE IF NOT EXISTS user_settings
-                   (
-                       chat_id
-                       INTEGER
-                       PRIMARY
-                       KEY,
-                       difficulty
-                       TEXT
-                       DEFAULT
-                       'A1',
-                       source_lang
-                       TEXT
-                       DEFAULT
-                       'en',
-                       words_per_day
-                       INTEGER
-                       DEFAULT
-                       5
-                   )
-                   ''')
+    CREATE TABLE IF NOT EXISTS user_settings (
+        chat_id INTEGER PRIMARY KEY,
+        difficulty TEXT,
+        source_lang TEXT,
+        words_per_day INTEGER DEFAULT 5
+    )
+    ''')
 
     # 2. ТАБЛИЦА ДЛЯ АКТИВНЫХ ЗАДАНИЙ (ФРАЗЫ)
     cursor.execute('''
-                   CREATE TABLE IF NOT EXISTS active_tasks
-                   (
-                       chat_id
-                       INTEGER
-                       PRIMARY
-                       KEY,
-                       phrase
-                       TEXT,
-                       rule
-                       TEXT,
-                       help_count
-                       INTEGER
-                       DEFAULT
-                       0
-                   )
-                   ''')
+    CREATE TABLE IF NOT EXISTS active_tasks (
+        chat_id INTEGER PRIMARY KEY,
+        phrase TEXT,
+        rule TEXT,
+        help_count INTEGER DEFAULT 0
+    )
+    ''')
 
     # 3. ТАБЛИЦА ИСТОРИИ ВЫДАННЫХ ФРАЗ
     cursor.execute('''
-                   CREATE TABLE IF NOT EXISTS task_history
-                   (
-                       id
-                       INTEGER
-                       PRIMARY
-                       KEY
-                       AUTOINCREMENT,
-                       chat_id
-                       INTEGER,
-                       phrase
-                       TEXT,
-                       date
-                       TEXT
-                       DEFAULT (
-                       DATE
-                   (
-                       'now',
-                       'localtime'
-                   ))
-                       )
-                   ''')
+    CREATE TABLE IF NOT EXISTS task_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER,
+        phrase TEXT,
+        date TEXT DEFAULT (DATE('now', 'localtime'))
+    )
+    ''')
 
     # 4. ОБНОВЛЕННАЯ ТАБЛИЦА ИНТЕРВАЛЬНОГО СЛОВАРЯ (МУЛЬТИЯЗЫЧНАЯ)
     cursor.execute('''
-                   CREATE TABLE IF NOT EXISTS user_dictionary
-                   (
-                       id
-                       INTEGER
-                       PRIMARY
-                       KEY
-                       AUTOINCREMENT,
-                       chat_id
-                       INTEGER,
-                       lang
-                       TEXT
-                       DEFAULT
-                       'en',
-                       word_foreign
-                       TEXT,
-                       word_ru
-                       TEXT,
-                       score
-                       INTEGER
-                       DEFAULT
-                       0,
-                       next_review
-                       TEXT
-                       DEFAULT (
-                       DATE
-                   (
-                       'now',
-                       'localtime'
-                   )),
-                       last_correct TEXT
-                       )
-                   ''')
+    CREATE TABLE IF NOT EXISTS user_dictionary (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER,
+        lang TEXT DEFAULT 'en',
+        word_foreign TEXT,
+        word_ru TEXT,
+        score INTEGER DEFAULT 0,
+        next_review TEXT DEFAULT (DATE('now', 'localtime')),
+        last_correct TEXT
+    )
+    ''')
 
-    # --- МИГРАЦИИ (Подстраховка для старой базы данных) ---
+    # --- МИГРАЦИИ ---
     try:
         cursor.execute("ALTER TABLE user_settings ADD COLUMN words_per_day INTEGER DEFAULT 5")
     except sqlite3.OperationalError:
@@ -135,30 +78,40 @@ def init_db():
 # --- ФУНКЦИИ ДЛЯ НАСТРОЕК ---
 
 def get_user_config(chat_id):
-    """Получает настройки пользователя. Если его нет в базе — создает дефолт"""
+    """Получает настройки пользователя. Если его нет в базе — возвращает None"""
     conn = sqlite3.connect(DB_NAME, check_same_thread=False)
     cursor = conn.cursor()
 
     cursor.execute("SELECT difficulty, source_lang, words_per_day FROM user_settings WHERE chat_id = ?", (chat_id,))
     row = cursor.fetchone()
+    conn.close()
 
     if row:
-        config = {"difficulty": row[0], "source_lang": row[1], "words_per_day": row[2]}
-    else:
-        cursor.execute("INSERT INTO user_settings (chat_id) VALUES (?)", (chat_id,))
-        conn.commit()
-        config = {"difficulty": "A1", "source_lang": "en", "words_per_day": 5}
+        return {"difficulty": row[0], "source_lang": row[1], "words_per_day": row[2]}
 
-    conn.close()
-    return config
+    return None
+
+
+def create_empty_user(chat_id):
+    """Создает пустую запись пользователя в базе данных при первом старте"""
+    conn = sqlite3.connect(DB_NAME, check_same_thread=False)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT OR IGNORE INTO user_settings (chat_id, difficulty, source_lang) VALUES (?, NULL, NULL)",
+            (chat_id,)
+        )
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"🔴 Ошибка при создании пустого пользователя: {e}")
+    finally:
+        conn.close()
 
 
 def update_user_setting(chat_id, key, value):
     """Обновляет конкретную настройку (difficulty, source_lang или words_per_day)"""
     conn = sqlite3.connect(DB_NAME, check_same_thread=False)
     cursor = conn.cursor()
-
-    get_user_config(chat_id)
 
     if key in ["difficulty", "source_lang", "words_per_day"]:
         cursor.execute(f"UPDATE user_settings SET {key} = ? WHERE chat_id = ?", (value, chat_id))
@@ -230,30 +183,24 @@ def get_today_phrases_list(chat_id):
 
 # --- ФУНКЦИИ ИНТЕРВАЛЬНОГО СЛОВАРЯ ---
 
-
-
-
 def get_words_for_training(chat_id, limit_new=5):
     """Вытаскивает слова на повторение + новые с фильтрацией по текущему языку"""
     user_config = get_user_config(chat_id)
-    current_lang = user_config.get("source_lang", "en")
+    current_lang = user_config.get("source_lang", "en") if user_config else "en"
 
     conn = sqlite3.connect(DB_NAME, check_same_thread=False)
     cursor = conn.cursor()
 
-    # 1. Выбираем слова на повторение (next_review наступило)
     cursor.execute("""
                    SELECT id, word_foreign, word_ru, score
                    FROM user_dictionary
                    WHERE chat_id = ?
                      AND lang = ?
                      AND score > 0
-                     AND next_review <= DATE ('now'
-                       , 'localtime')
+                     AND next_review <= DATE ('now', 'localtime')
                    """, (chat_id, current_lang))
     repeat_words = cursor.fetchall()
 
-    # 2. Добираем новые слова (score = 0)
     cursor.execute("""
                    SELECT id, word_foreign, word_ru, score
                    FROM user_dictionary
@@ -265,7 +212,6 @@ def get_words_for_training(chat_id, limit_new=5):
 
     result = repeat_words + new_words
 
-    # Подстраховка (если лимиты вышли — гоняем по кругу текущий язык)
     if not result:
         cursor.execute("""
                        SELECT id, word_foreign, word_ru, score
@@ -315,7 +261,7 @@ def get_full_dictionary(chat_id, specific_lang=None):
     """Возвращает весь личный словарь пользователя по выбранному языку"""
     if specific_lang is None:
         user_config = get_user_config(chat_id)
-        current_lang = user_config.get("source_lang", "en")
+        current_lang = user_config.get("source_lang", "en") if user_config else "en"
     else:
         current_lang = specific_lang
 
@@ -332,7 +278,7 @@ def add_custom_word(chat_id, word_foreign, word_ru, specific_lang=None):
     """Добавляет новое слово текущего или указанного языка, исключая дубликаты"""
     if specific_lang is None:
         user_config = get_user_config(chat_id)
-        current_lang = user_config.get("source_lang", "en")
+        current_lang = user_config.get("source_lang", "en") if user_config else "en"
     else:
         current_lang = specific_lang
 
@@ -361,15 +307,10 @@ def add_custom_word(chat_id, word_foreign, word_ru, specific_lang=None):
     return saved
 
 
-# database.py
-
 def get_words_for_grammar_context(chat_id, limit=2):
-    """
-    Вытаскивает N слов активного языка.
-    Ключ 'en' заменен на 'foreign' для универсальности (EN/GER).
-    """
+    """Вытаскивает N слов активного языка."""
     user_config = get_user_config(chat_id)
-    current_lang = user_config.get("source_lang", "en")
+    current_lang = user_config.get("source_lang", "en") if user_config else "en"
 
     conn = sqlite3.connect(DB_NAME, check_same_thread=False)
     cursor = conn.cursor()
@@ -377,14 +318,13 @@ def get_words_for_grammar_context(chat_id, limit=2):
     query = """
             SELECT word_foreign, word_ru
             FROM user_dictionary
-            WHERE chat_id = ? \
+            WHERE chat_id = ?
               AND lang = ?
-            ORDER BY score ASC, RANDOM() LIMIT ? \
+            ORDER BY score ASC, RANDOM() LIMIT ?
             """
     cursor.execute(query, (chat_id, current_lang, limit))
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
 
-    # 🔥 ИСПРАВЛЕНО: Ключ теперь называется 'foreign' вместо 'en'
     return [{"foreign": row[0], "ru": row[1]} for row in rows]

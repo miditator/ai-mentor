@@ -28,7 +28,16 @@ def StartMentor(message):
     # 🔍 ПРОВЕРКА: Существует ли уже конфигурация пользователя в БД?
     user_config = database.get_user_config(chat_id)
 
-    if user_config and (user_config.get("source_lang") or user_config.get("difficulty")):
+    # Меняем условие: пользователь зарегистрирован ТОЛЬКО если конфиг существует
+    # И в нем реально заполнены и язык, и сложность (не равны None или пустой строке)
+    is_registered = False
+    if user_config:
+        has_lang = user_config.get("source_lang") is not None and user_config.get("source_lang") != ""
+        has_diff = user_config.get("difficulty") is not None and user_config.get("difficulty") != ""
+        if has_lang and has_diff:
+            is_registered = True
+
+    if is_registered:
         # Пользователь уже зарегистрирован — показываем настройки и главное меню
         lang_code = user_config.get("source_lang", "en")
         pretty_lang = "Английский" if lang_code == "en" else "Немецкий"
@@ -56,6 +65,9 @@ def StartMentor(message):
         return  # Завершаем функцию, не пуская в онбординг
 
     # --- 🟢 ЛОГИКА ОНБОРДИНГА ДЛЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ ---
+
+    # 🆕 Резервируем пустую запись в БД (поля настроек запишутся как NULL)
+    database.create_empty_user(chat_id)
 
     # Прячем "Новое задание", "Настройки" и т.д., чтобы очистить интерфейс
     bot.send_message(
