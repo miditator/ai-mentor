@@ -2,6 +2,8 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 import database
+import config
+import loader
 
 # Создаем роутер вместо приложения app
 router = APIRouter(
@@ -54,19 +56,31 @@ def save_onboarding(data: OnboardingData):
 class AddWordData(BaseModel):
     chat_id: int
     foreign: str
-    ru: str
+    # Поле 'ru' мы убрали, его генерирует ИИ
 
 
 @router.post("/words/add")
 def add_word(data: AddWordData):
     try:
-        # Узнаем текущий язык пользователя, чтобы правильно сохранить слово в БД
-        config = database.get_user_config(data.chat_id)
-        target_lang = config.get("source_lang", "en") if config else "en"
+        # Узнаем текущий язык пользователя
+        user_config = database.get_user_config(data.chat_id)
+        target_lang = user_config.get("source_lang", "en") if user_config else "en"
+        lang_name = "английского" if target_lang == "en" else "немецкого"
 
-        # Вызываем твою готовую функцию из database.py
-        database.add_custom_word(data.chat_id, data.foreign, data.ru, specific_lang=target_lang)
+        # 🧠 Запрашиваем перевод у ИИ
+        prompt = f"Переведи слово или фразу '{data.foreign}' с {lang_name} языка на русский. В ответе напиши ТОЛЬКО перевод, без лишних слов, кавычек и точек."
 
-        return {"success": True}
+        response = loader.ai_client.chat.completions.create(
+            model=config.MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )
+        ru_translation = response.choices[0].message.content.strip()
+
+        # Сохраняем в базу данных готовую пару
+        database.add_custom_word(data.chat_id, data.foreign, ru_translation, specific_lang=target_lang)
+
+        # Возвращаем на фронтенд перевод, чтобы показать его юзеру
+        return {"success": True, "ru": ru_translation}
     except Exception as e:
         return {"success": False, "error": str(e)}

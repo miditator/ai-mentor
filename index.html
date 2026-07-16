@@ -57,14 +57,21 @@
                 <div id="chat-messages" style="display: flex; flex-direction: column; gap: 10px;"></div>
             </div>
 
-            <div id="input-container" style="padding: 10px 15px; border-top: 1px solid rgba(112, 132, 153, 0.3); display: none; gap: 10px; background-color: var(--bg-color);">
-                <input type="text" id="user-input" placeholder="Напиши слово..." style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid rgba(112, 132, 153, 0.5); background: var(--secondary-bg-color); color: var(--text-color); font-size: 16px; outline: none;">
-                <button class="btn-primary" id="btn-send" style="margin: 0; width: 50px; padding: 0; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
-                    ➡️
+            <div id="input-container" style="padding: 15px; border-top: 1px solid rgba(112, 132, 153, 0.3); display: none; flex-direction: column; gap: 12px; background-color: var(--bg-color);">
+
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="user-input" placeholder="Напиши слово..." style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid rgba(112, 132, 153, 0.5); background: var(--secondary-bg-color); color: var(--text-color); font-size: 16px; outline: none;">
+
+                    <button class="btn-primary" id="btn-send" style="margin: 0; width: 50px; padding: 0; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                        ➡️
+                    </button>
+                </div>
+
+                <button class="btn-primary" style="margin: 0; width: 100%; font-size: 15px; padding: 14px; background-color: var(--secondary-bg-color); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3);" onclick="cancelAddWord()">
+                    ❌ Отмена
                 </button>
             </div>
-
-           <div id="action-keyboard" style="padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
+            <div id="action-keyboard" style="padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
                 <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px;" onclick="enterAddWordMode()">
                     ➕ Добавить слово
                 </button>

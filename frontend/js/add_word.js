@@ -2,13 +2,11 @@
 // ФАЙЛ: frontend/js/add_word.js
 // ==========================================
 
-let addWordStep = null; // Шаги: 'waiting_foreign' -> 'waiting_ru'
-let pendingForeignWord = "";
+let isWaitingForAi = false; // Блокиратор, чтобы юзер не нажал кнопку 10 раз
 
 function enterAddWordMode() {
     window.currentAppMode = 'add_word';
-    addWordStep = 'waiting_foreign';
-    pendingForeignWord = "";
+    isWaitingForAi = false;
 
     // 1. Меняем шапку
     document.getElementById('top-bar').innerText = '➕ Добавление слова';
@@ -18,7 +16,7 @@ function enterAddWordMode() {
     document.getElementById('input-container').style.display = 'flex';
 
     // 3. Выводим инструкцию в чат
-    addMessageToOutput('Напиши слово (или фразу) на иностранном языке ✍️');
+    addMessageToOutput('Напиши слово (или фразу) на иностранном языке, а ИИ сам переведет его и добавит в словарь 🧠✍️');
 
     // 4. Настраиваем поле ввода и ставим фокус
     const inputField = document.getElementById('user-input');
@@ -26,60 +24,73 @@ function enterAddWordMode() {
     inputField.focus();
 }
 
-// Эта функция принимает текст из поля ввода (вызывается из app.js)
+// Эта функция принимает текст из поля ввода
 function handleAddWordInput(text) {
-    if (addWordStep === 'waiting_foreign') {
-        pendingForeignWord = text;
-        addWordStep = 'waiting_ru';
+    if (isWaitingForAi) return; // Если уже ждем ответа, игнорируем новые отправки
 
-        // Просим перевод
-        addMessageToOutput(`Отлично! Теперь напиши перевод для <b>${text}</b> 🇷🇺`);
+    isWaitingForAi = true;
+    const foreignWord = text;
 
-        const inputField = document.getElementById('user-input');
-        inputField.placeholder = "Перевод на русский...";
-        inputField.focus();
+    // Показываем индикатор загрузки
+    addMessageToOutput(`<i>⏳ ИИ переводит и сохраняет <b>${foreignWord}</b>...</i>`);
 
-    } else if (addWordStep === 'waiting_ru') {
-        const ruWord = text;
-        addWordStep = null;
-
-        // Отправляем готовую пару на FastAPI
-        apiFetch('/words/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: user.id, // ID берем из глобальной переменной в app.js
-                foreign: pendingForeignWord,
-                ru: ruWord
-            })
+    // Отправляем только иностранное слово на FastAPI
+    apiFetch('/words/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: user.id,
+            foreign: foreignWord
         })
-        .then(data => {
-            if(data.success) {
-                // Выводим сообщение об успехе и предлагаем Интенсив!
-                addMessageToOutput(
-                    `✅ Слово <b>${pendingForeignWord}</b> успешно добавлено в словарь!<br><br>` +
-                    `🔥 <i>Хочешь пройти Интенсив по этому слову и закрепить его в памяти? (Логика скоро появится)</i>`
-                );
+    })
+    .then(data => {
+        if(data.success) {
+            // Выводим сообщение об успехе с переводом от ИИ!
+            addMessageToOutput(
+                `✅ Слово <b>${foreignWord}</b> — <b>${data.ru}</b> добавлено в словарь!<br><br>` +
+                `🔥 <i>Хочешь пройти Интенсив по этому слову и закрепить его? (Кнопки скоро появятся)</i>`
+            );
 
-                // Обновляем статистику профиля в фоне (чтобы счетчик слов вырос)
-                apiFetch(`/profile?chat_id=${user.id}`).then(showProfileData);
-            } else {
-                addMessageToOutput(`❌ Ошибка на сервере: ${data.error}`);
-            }
+            // Обновляем статистику профиля в фоне
+            apiFetch(`/profile?chat_id=${user.id}`).then(showProfileData);
+        } else {
+            addMessageToOutput(`❌ Ошибка на сервере: ${data.error}`);
+        }
 
-            // Возвращаемся в главное меню через 3.5 секунды, чтобы юзер успел прочитать
-            setTimeout(exitAddWordMode, 3500);
-        })
-        .catch(err => {
-            addMessageToOutput(`❌ Ошибка сети: ${err.message}`);
-            setTimeout(exitAddWordMode, 2000);
-        });
-    }
+        // Возвращаемся в главное меню через 3.5 секунды
+        setTimeout(exitAddWordMode, 3500);
+    })
+    .catch(err => {
+        addMessageToOutput(`❌ Ошибка сети: ${err.message}`);
+        setTimeout(exitAddWordMode, 2000);
+    });
 }
 
 // Возврат к главному меню
+// ==========================================
+// Логика отмены и выхода в меню
+// ==========================================
+
+// Вызывается при нажатии на кнопку ❌
+function cancelAddWord() {
+    if (isWaitingForAi) {
+        addMessageToOutput("⚠️ Дождись ответа от ИИ перед отменой.");
+        return;
+    }
+
+    addMessageToOutput("<i>Действие отменено. Возвращаемся в меню...</i>");
+    exitAddWordMode();
+}
+
+// Универсальный возврат к главному меню
 function exitAddWordMode() {
     window.currentAppMode = 'menu';
+    isWaitingForAi = false; // Сбрасываем блокировку на всякий случай
+
+    // Очищаем поле ввода, если там что-то осталось
+    document.getElementById('user-input').value = '';
+
+    // Возвращаем интерфейс Главного меню
     document.getElementById('top-bar').innerText = 'Главное меню';
     document.getElementById('input-container').style.display = 'none';
     document.getElementById('action-keyboard').style.display = 'grid';
