@@ -67,30 +67,8 @@ function handleAddWordInput(text) {
 }
 
 // Возврат к главному меню
-// ==========================================
-// Логика отмены и выхода в меню
-// ==========================================
-
-// Вызывается при нажатии на кнопку ❌
-function cancelAddWord() {
-    if (isWaitingForAi) {
-        addMessageToOutput("⚠️ Дождись ответа от ИИ перед отменой.");
-        return;
-    }
-
-    addMessageToOutput("<i>Действие отменено. Возвращаемся в меню...</i>");
-    exitAddWordMode();
-}
-
-// Универсальный возврат к главному меню
 function exitAddWordMode() {
     window.currentAppMode = 'menu';
-    isWaitingForAi = false; // Сбрасываем блокировку на всякий случай
-
-    // Очищаем поле ввода, если там что-то осталось
-    document.getElementById('user-input').value = '';
-
-    // Возвращаем интерфейс Главного меню
     document.getElementById('top-bar').innerText = 'Главное меню';
     document.getElementById('input-container').style.display = 'none';
     document.getElementById('action-keyboard').style.display = 'grid';
