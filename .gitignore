@@ -5,7 +5,7 @@
 # Виртуальное окружение Python
 venv/
 .venv/
-env/
+.env/
 
 # Кэш Python и PyCharm
 __pycache__/

@@ -16,7 +16,7 @@ def get_main_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
     # 🔥 ТВОЯ ССЫЛКА ИЗ GITHUB PAGES (не забудь заменить на свою реальную ссылку!)
-    web_app = types.WebAppInfo(url="https://miditator.github.io/ai-mentor/?v=1.9")
+    web_app = types.WebAppInfo(url="https://miditator.github.io/ai-mentor/?v=2.1")
 
     btn_task = types.KeyboardButton(text="🎯 Новое задание")
     btn_add_word = types.KeyboardButton(text="➕ Добавить слово")
@@ -161,4 +161,23 @@ def get_post_add_word_menu(word):
     )
 
     markup.add(btn_intensity, btn_menu)
+    return markup
+
+
+from telebot import types
+
+
+def get_onboarding_app_menu():
+    """Создает клавиатуру с кнопкой запуска Mini App для онбординга"""
+    markup = types.InlineKeyboardMarkup(row_width=1)
+
+    # Ссылка на твой Mini App на GitHub Pages.
+    # Не забывай менять версию (?v=...), чтобы сбрасывать кэш в Telegram!
+    web_app_url = "https://miditator.github.io/ai-mentor/?v=2.8"
+
+    app_button = types.InlineKeyboardButton(
+        text="⚙️ Настроить профиль",
+        web_app=types.WebAppInfo(url=web_app_url)
+    )
+    markup.add(app_button)
     return markup

@@ -254,3 +254,20 @@ def global_intensity_menu_handler(message):
         reply_markup=keyboard.get_cancel_word_keyboard(),
         parse_mode="HTML"
     )
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "start_chat_onboarding")
+def start_chat_onboarding_callback(call):
+    chat_id = call.message.chat.id
+
+    # Удаляем старое инлайн-сообщение с выбором, чтобы не захламлять чат
+    bot.delete_message(chat_id, call.message.message_id)
+
+    # Отправляем стандартный текстовый выбор языка
+    markup = keyboard.get_start_language_menu()  # Твоя старая функция выбора языка в чате
+    bot.send_message(
+        chat_id,
+        "🌍 <b>Шаг 1 из 2 (в чате):</b> Выбери целевой язык для изучения:",
+        reply_markup=markup,
+        parse_mode="HTML"
+    )

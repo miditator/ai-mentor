@@ -69,20 +69,11 @@ def StartMentor(message):
     # 🆕 Резервируем пустую запись в БД (поля настроек запишутся как NULL)
     database.create_empty_user(chat_id)
 
-    # Прячем "Новое задание", "Настройки" и т.д., чтобы очистить интерфейс
     bot.send_message(
         chat_id,
         "🚀 <b>Добро пожаловать в Умный ИИ-Ментор!</b>\n\n"
-        "Давай настроим твой профиль для максимально эффективного обучения.",
-        reply_markup=types.ReplyKeyboardRemove(),
-        parse_mode="HTML"
-    )
-
-    # Шаг 1: Выбор языка
-    markup = keyboard.get_start_language_menu()
-    bot.send_message(
-        chat_id,
-        "🌍 <b>Шаг 1 из 2:</b> Выбери целевой язык для изучения:",
-        reply_markup=markup,
+        "Чтобы начать обучение, давай быстро настроим твой профиль: выберем изучаемый язык и уровень сложности.\n\n"
+        "Нажми на кнопку ниже 👇",
+        reply_markup=keyboard.get_onboarding_app_menu(),
         parse_mode="HTML"
     )

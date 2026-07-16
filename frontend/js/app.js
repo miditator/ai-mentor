@@ -1,20 +1,61 @@
 // js/app.js
 const tg = window.Telegram.WebApp;
 tg.ready();
-tg.expand(); // Растягиваем Mini App на весь экран телефона
+tg.expand();
 
-// Извлекаем данные пользователя из Telegram (или ставим тестовый ID для локальных тестов в браузере)
 let user = tg.initDataUnsafe?.user || { id: 8407744578, first_name: "Пользователь (Резерв)" };
-document.getElementById('username').innerText = user.first_name;
 
-// Функция для плавного переключения экранов
+// Глобальные переменные
+window.userProfile = null;
+window.currentAppMode = 'menu'; // Важно для переключения режимов
+
 function switchScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
 }
 
-// Заполнение профиля данными на главном экране
 function showProfileData(data) {
+    window.userProfile = data;
+}
+
+// ==========================================
+// Функция вывода сообщений в "Чат" приложения
+// ==========================================
+function addMessageToOutput(text, isUser = false) {
+    const outputArea = document.getElementById('output-area');
+    const msgDiv = document.createElement('div');
+
+    msgDiv.style.padding = '12px 15px';
+    msgDiv.style.borderRadius = '12px';
+    msgDiv.style.marginBottom = '10px';
+    msgDiv.style.fontSize = '15px';
+    msgDiv.style.maxWidth = '85%';
+    msgDiv.style.wordWrap = 'break-word';
+
+    if (isUser) {
+        msgDiv.style.backgroundColor = 'var(--button-color)';
+        msgDiv.style.color = '#ffffff';
+        msgDiv.style.alignSelf = 'flex-end';
+    } else {
+        msgDiv.style.backgroundColor = 'var(--secondary-bg-color)';
+        msgDiv.style.border = '1px solid rgba(112, 132, 153, 0.2)';
+        msgDiv.style.color = 'var(--text-color)';
+        msgDiv.style.alignSelf = 'flex-start';
+    }
+
+    msgDiv.innerHTML = text;
+    outputArea.appendChild(msgDiv);
+    outputArea.scrollTop = outputArea.scrollHeight;
+}
+
+// 2. Функция, которая срабатывает при нажатии на кнопку "👤 Мой профиль"
+function showProfileStats() {
+    if (!window.userProfile) {
+        addMessageToOutput("⚠️ Данные профиля еще загружаются, подожди секунду...");
+        return;
+    }
+
+    const data = window.userProfile;
     const diffMap = {
         "A1": "Начальный (A1)",
         "A2": "Элементарный (A2)",
@@ -24,22 +65,44 @@ function showProfileData(data) {
     };
     const langMap = { "en": "Английский 🇬🇧", "de": "Немецкий 🇩🇪" };
 
-    const rawDiff = data.difficulty;
+    const langText = langMap[data.language] || data.language;
+    const diffText = diffMap[data.difficulty] || data.difficulty;
 
-    document.getElementById('user-lang').innerText = langMap[data.language] || data.language;
-    document.getElementById('user-diff').innerText = diffMap[rawDiff] || rawDiff;
-    document.getElementById('user-words').innerText = data.words_count;
-    document.getElementById('user-limit').innerText = `${data.words_per_day} шт.`;
+    const msg = `
+        <b style="color: var(--button-color); font-size: 16px;">👤 Твой профиль</b><br><br>
+        🌍 Изучаемый язык: <b>${langText}</b><br>
+        📈 Сложность: <b>${diffText}</b><br>
+        📚 Слов в словаре: <b>${data.words_count}</b><br>
+        🎯 Дневной лимит: <b>${data.words_per_day} шт.</b>
+    `;
+
+    addMessageToOutput(msg, false);
 }
+
+// ==========================================
+// Обработчик кнопки отправки (➡️)
+// ==========================================
+document.getElementById('btn-send').addEventListener('click', () => {
+    const inputField = document.getElementById('user-input');
+    const text = inputField.value.trim();
+    if (!text) return;
+
+    // Показываем сообщение пользователя
+    addMessageToOutput(text, true);
+    inputField.value = '';
+
+    // Направляем текст в нужный модуль
+    if (window.currentAppMode === 'add_word' && typeof handleAddWordInput === 'function') {
+        handleAddWordInput(text);
+    }
+});
 
 // ПРОВЕРКА ПОЛЬЗОВАТЕЛЯ ПРИ СТАРТЕ ПРИЛОЖЕНИЯ
 apiFetch(`/profile?chat_id=${user.id}`)
     .then(data => {
         if (data.is_new_user) {
-            // Если профиль не настроен — отправляем на онбординг
             switchScreen('screen-onboarding');
         } else {
-            // Если уже заполнен — показываем личный кабинет
             showProfileData(data);
             switchScreen('screen-main');
         }
