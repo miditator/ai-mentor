@@ -49,3 +49,24 @@ def save_onboarding(data: OnboardingData):
         return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+class AddWordData(BaseModel):
+    chat_id: int
+    foreign: str
+    ru: str
+
+
+@router.post("/words/add")
+def add_word(data: AddWordData):
+    try:
+        # Узнаем текущий язык пользователя, чтобы правильно сохранить слово в БД
+        config = database.get_user_config(data.chat_id)
+        target_lang = config.get("source_lang", "en") if config else "en"
+
+        # Вызываем твою готовую функцию из database.py
+        database.add_custom_word(data.chat_id, data.foreign, data.ru, specific_lang=target_lang)
+
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
