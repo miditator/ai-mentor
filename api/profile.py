@@ -96,3 +96,7 @@ def add_word(data: AddWordData):
         return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
+@router.get("/words/all") # FastAPI добавит /api к нему автоматически
+def get_dictionary(chat_id: int):
+    words = database.get_full_dictionary(chat_id)
+    return {"success": True, "words": words}

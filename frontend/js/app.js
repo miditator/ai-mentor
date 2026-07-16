@@ -95,3 +95,33 @@ apiFetch(`/profile?chat_id=${user.id}`)
             </div>
         `;
     });
+function showFullDictionary() {
+    // 1. Меняем заголовки и видимость
+    document.getElementById('top-bar').innerText = '📚 Мой словарь';
+    document.getElementById('action-keyboard').style.display = 'none';
+    document.getElementById('dictionary-keyboard').style.display = 'grid';
+    document.getElementById('profile-card').style.display = 'none'; // Прячем профиль, чтобы не мешал
+    document.getElementById('chat-messages').innerHTML = ''; // Очистка чата
+
+    // 2. Загрузка данных
+    apiFetch(`/api/words/all?chat_id=${user.id}`)
+        .then(data => {
+            if (data.words && data.words.length > 0) {
+                let html = '<b>Список слов:</b><br><br>';
+                data.words.forEach(w => {
+                    html += `• <b>${w.foreign}</b> — <i>${w.ru}</i><br>`;
+                });
+                addMessageToOutput(html);
+            } else {
+                addMessageToOutput("Словарь пуст. Добавь первое слово! ✍️");
+            }
+        });
+}
+
+function exitToMainMenu() {
+    document.getElementById('top-bar').innerText = 'Главное меню';
+    document.getElementById('action-keyboard').style.display = 'grid';
+    document.getElementById('dictionary-keyboard').style.display = 'none';
+    document.getElementById('chat-messages').innerHTML = '';
+    document.getElementById('profile-card').style.display = 'block'; // Возвращаем профиль
+}
