@@ -78,16 +78,13 @@
                     </button>
                 </div>
 
-                            <!-- ⚙️ КЛАВИАТУРА РЕЖИМА СЛОВАРЯ (Скрыта по умолчанию) -->
-            <div id="dictionary-keyboard" style="padding: 15px; display: none; grid-template-columns: 1fr 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
-                <button class="btn-primary" style="background-color: #34c759;" onclick="enterAddWordMode()">➕ Добавить</button>
-                <button class="btn-primary" style="background-color: #ff3b30;" onclick="exitToMainMenu()">❌ В меню</button>
-            </div>
+
 
                 <!-- Строка 3: Широкая кнопка выхода (Всегда видна) -->
                 <button class="btn-primary" style="margin: 0; width: 100%; font-size: 15px; padding: 14px; background-color: var(--secondary-bg-color); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3);" onclick="cancelAddWord()">
                     ❌ Выход в меню
                 </button>
+
             </div>
                 <div id="action-keyboard" style="padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
 
@@ -109,6 +106,11 @@
                 </button>
                  <button class="btn-primary" style="background-color: var(--hint-color);" onclick="showFullDictionary()">
                      📚 Словарь</button>
+            </div>
+
+            <div id="dictionary-keyboard" style="padding: 15px; display: none; grid-template-columns: 1fr 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
+                <button class="btn-primary" style="background-color: #34c759;" onclick="enterAddWordMode()">➕ Добавить</button>
+                <button class="btn-primary" style="background-color: #ff3b30;" onclick="exitToMainMenu()">❌ В меню</button>
             </div>
         </div>
     </div>
