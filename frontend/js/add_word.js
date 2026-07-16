@@ -66,9 +66,30 @@ function handleAddWordInput(text) {
     });
 }
 
+// ==========================================
+// Логика отмены и выхода в меню
+// ==========================================
+
+// Вызывается при нажатии на кнопку ❌ Отмена
+function cancelAddWord() {
+    if (isWaitingForAi) {
+        addMessageToOutput("⚠️ Дождись ответа от ИИ перед отменой.");
+        return;
+    }
+
+    addMessageToOutput("<i>Действие отменено. Возвращаемся в меню...</i>");
+    exitAddWordMode();
+}
+
 // Возврат к главному меню
 function exitAddWordMode() {
     window.currentAppMode = 'menu';
+    isWaitingForAi = false;
+
+    // Очищаем поле ввода, если там что-то осталось
+    document.getElementById('user-input').value = '';
+
+    // Возвращаем интерфейс Главного меню
     document.getElementById('top-bar').innerText = 'Главное меню';
     document.getElementById('input-container').style.display = 'none';
     document.getElementById('action-keyboard').style.display = 'grid';
