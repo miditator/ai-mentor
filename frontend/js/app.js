@@ -14,21 +14,18 @@ function switchScreen(screenId) {
     document.getElementById(screenId).classList.add('active');
 }
 
-// Функция отображения плашки
 function updateProfileUI(data) {
-    console.log("Данные от сервера:", data); // Проверь консоль (Ctrl+Shift+I)
+    console.log("Данные от сервера:", data);
     window.userProfile = data;
 
     const diffMap = { "A1": "Начальный (A1)", "A2": "Элементарный (A2)", "B1": "Средний (B1)", "B2": "Выше среднего (B2)", "C1": "Продвинутый (C1)" };
     const langMap = { "en": "Английский 🇬🇧", "de": "Немецкий 🇩🇪" };
 
-    // Используем значения по умолчанию, если данные не пришли
     const lang = data.language || "Не задан";
     const diff = data.difficulty || "Не задана";
     const count = (data.words_count !== undefined) ? data.words_count : 0;
     const limit = (data.words_per_day !== undefined) ? data.words_per_day : 10;
 
-    // Обновляем текст в элементах
     document.getElementById('pc-lang').innerText = langMap[lang] || lang;
     document.getElementById('pc-diff').innerText = diffMap[diff] || diff;
     document.getElementById('pc-words').innerText = count;
@@ -77,35 +74,29 @@ document.getElementById('btn-send').addEventListener('click', () => {
     }
 });
 
-// ПРОВЕРКА ПОЛЬЗОВАТЕЛЯ
 apiFetch(`/profile?chat_id=${user.id}`)
     .then(data => {
         if (data.is_new_user) {
             switchScreen('screen-onboarding');
         } else {
-            updateProfileUI(data); // Вызываем новую функцию
+            updateProfileUI(data);
             switchScreen('screen-main');
         }
     })
     .catch(err => {
         console.error(err);
-        document.getElementById('screen-loading').innerHTML = `
-            <div class="loader" style="color: #ff4d4d;">
-                ⚠️ Ошибка: ${err.message}
-            </div>
-        `;
     });
+
 function showFullDictionary() {
-    // 1. Меняем заголовки и видимость
     document.getElementById('top-bar').innerText = '📚 Мой словарь';
     document.getElementById('action-keyboard').style.display = 'none';
     document.getElementById('dictionary-keyboard').style.display = 'grid';
-    document.getElementById('profile-card').style.display = 'none'; // Прячем профиль, чтобы не мешал
-    document.getElementById('chat-messages').innerHTML = ''; // Очистка чата
+    document.getElementById('profile-card').style.display = 'none';
+    document.getElementById('chat-messages').innerHTML = '<i>Загрузка словаря...</i>';
 
-    // 2. Загрузка данных
     apiFetch(`/api/words/all?chat_id=${user.id}`)
         .then(data => {
+            document.getElementById('chat-messages').innerHTML = '';
             if (data.words && data.words.length > 0) {
                 let html = '<b>Список слов:</b><br><br>';
                 data.words.forEach(w => {
@@ -123,5 +114,5 @@ function exitToMainMenu() {
     document.getElementById('action-keyboard').style.display = 'grid';
     document.getElementById('dictionary-keyboard').style.display = 'none';
     document.getElementById('chat-messages').innerHTML = '';
-    document.getElementById('profile-card').style.display = 'block'; // Возвращаем профиль
+    document.getElementById('profile-card').style.display = 'block';
 }
