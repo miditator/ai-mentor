@@ -16,14 +16,23 @@ function switchScreen(screenId) {
 
 // Функция отображения плашки
 function updateProfileUI(data) {
+    console.log("Данные от сервера:", data); // Проверь консоль (Ctrl+Shift+I)
     window.userProfile = data;
+
     const diffMap = { "A1": "Начальный (A1)", "A2": "Элементарный (A2)", "B1": "Средний (B1)", "B2": "Выше среднего (B2)", "C1": "Продвинутый (C1)" };
     const langMap = { "en": "Английский 🇬🇧", "de": "Немецкий 🇩🇪" };
 
-    document.getElementById('pc-lang').innerText = langMap[data.language] || data.language;
-    document.getElementById('pc-diff').innerText = diffMap[data.difficulty] || data.difficulty;
-    document.getElementById('pc-words').innerText = data.words_count;
-    document.getElementById('pc-limit').innerText = `${data.words_per_day} шт.`;
+    // Используем значения по умолчанию, если данные не пришли
+    const lang = data.language || "Не задан";
+    const diff = data.difficulty || "Не задана";
+    const count = (data.words_count !== undefined) ? data.words_count : 0;
+    const limit = (data.words_per_day !== undefined) ? data.words_per_day : 10;
+
+    // Обновляем текст в элементах
+    document.getElementById('pc-lang').innerText = langMap[lang] || lang;
+    document.getElementById('pc-diff').innerText = diffMap[diff] || diff;
+    document.getElementById('pc-words').innerText = count;
+    document.getElementById('pc-limit').innerText = limit + " шт.";
 
     document.getElementById('profile-card').style.display = 'block';
     isProfileVisible = true;
