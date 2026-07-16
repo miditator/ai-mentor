@@ -21,7 +21,11 @@ function showProfileData(data) {
 // ==========================================
 // Функция вывода сообщений в "Чат" приложения
 // ==========================================
+// ==========================================
+// Функция вывода сообщений чата
+// ==========================================
 function addMessageToOutput(text, isUser = false) {
+    const chatMessages = document.getElementById('chat-messages'); // Теперь кладем в отдельный контейнер
     const outputArea = document.getElementById('output-area');
     const msgDiv = document.createElement('div');
 
@@ -44,39 +48,39 @@ function addMessageToOutput(text, isUser = false) {
     }
 
     msgDiv.innerHTML = text;
-    outputArea.appendChild(msgDiv);
-    outputArea.scrollTop = outputArea.scrollHeight;
+    chatMessages.appendChild(msgDiv); // Добавляем в ленту
+    outputArea.scrollTop = outputArea.scrollHeight; // Скроллим вниз
 }
 
-// 2. Функция, которая срабатывает при нажатии на кнопку "👤 Мой профиль"
-function showProfileStats() {
-    if (!window.userProfile) {
-        addMessageToOutput("⚠️ Данные профиля еще загружаются, подожди секунду...");
+function toggleProfileStats() {
+    const profileCard = document.getElementById('profile-card');
+
+    // Если плашка уже открыта — скрываем её и оставляем экран чистым
+    if (isProfileVisible) {
+        profileCard.style.display = 'none';
+        isProfileVisible = false;
         return;
     }
 
+    if (!window.userProfile) {
+        addMessageToOutput("⚠️ Данные профиля еще загружаются...", false);
+        return;
+    }
+
+    // Подготавливаем данные
     const data = window.userProfile;
-    const diffMap = {
-        "A1": "Начальный (A1)",
-        "A2": "Элементарный (A2)",
-        "B1": "Средний (B1)",
-        "B2": "Выше среднего (B2)",
-        "C1": "Продвинутый (C1)"
-    };
+    const diffMap = { "A1": "Начальный (A1)", "A2": "Элементарный (A2)", "B1": "Средний (B1)", "B2": "Выше среднего (B2)", "C1": "Продвинутый (C1)" };
     const langMap = { "en": "Английский 🇬🇧", "de": "Немецкий 🇩🇪" };
 
-    const langText = langMap[data.language] || data.language;
-    const diffText = diffMap[data.difficulty] || data.difficulty;
+    // Вставляем данные в плашку
+    document.getElementById('pc-lang').innerText = langMap[data.language] || data.language;
+    document.getElementById('pc-diff').innerText = diffMap[data.difficulty] || data.difficulty;
+    document.getElementById('pc-words').innerText = data.words_count;
+    document.getElementById('pc-limit').innerText = `${data.words_per_day} шт.`;
 
-    const msg = `
-        <b style="color: var(--button-color); font-size: 16px;">👤 Твой профиль</b><br><br>
-        🌍 Изучаемый язык: <b>${langText}</b><br>
-        📈 Сложность: <b>${diffText}</b><br>
-        📚 Слов в словаре: <b>${data.words_count}</b><br>
-        🎯 Дневной лимит: <b>${data.words_per_day} шт.</b>
-    `;
-
-    addMessageToOutput(msg, false);
+    // Показываем плашку
+    profileCard.style.display = 'block';
+    isProfileVisible = true;
 }
 
 // ==========================================

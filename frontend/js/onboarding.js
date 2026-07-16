@@ -1,48 +1,35 @@
-// js/onboarding.js
-let onboardingState = {
-    step: 'language', // Текущий шаг: 'language' -> 'difficulty'
-    language: null,
-    difficulty: null
-};
+let onboardingState = { language: null, difficulty: null };
 
-// Выбор языка (вызывается при клике на флаги)
 function selectLanguage(lang) {
     onboardingState.language = lang;
+
+    // Подсвечиваем кнопку
     document.querySelectorAll('#step-language .option-btn').forEach(b => b.classList.remove('selected'));
     event.currentTarget.classList.add('selected');
-    document.getElementById('btn-next').disabled = false; // Разблокируем кнопку "Далее"
-}
 
-// Выбор сложности (вызывается при клике на уровни)
-function selectDifficulty(diff) {
-    onboardingState.difficulty = diff;
-    document.querySelectorAll('#step-difficulty .option-btn').forEach(b => b.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-    document.getElementById('btn-next').disabled = false; // Разблокируем кнопку "Начать"
-}
-
-// Обработка кнопки "Далее / Начать обучение"
-function handleNextStep() {
-    if (onboardingState.step === 'language') {
-        // Переключаем интерфейс на шаг выбора сложности
-        onboardingState.step = 'difficulty';
+    // Автоматический переход через 0.4 секунды для плавности
+    setTimeout(() => {
         document.getElementById('step-language').style.display = 'none';
-        document.getElementById('step-difficulty').style.display = 'block';
+        document.getElementById('step-difficulty').style.display = 'flex';
 
         document.getElementById('onboard-title').innerText = 'Сложность';
-        document.getElementById('onboard-subtitle').innerText = 'Шаг 2 из 2: Твой текущий уровень?';
-        document.getElementById('btn-next').innerText = 'Начать обучение 🚀';
-        document.getElementById('btn-next').disabled = true; // Снова блокируем, пока не выберет уровень
-    } else if (onboardingState.step === 'difficulty') {
-        saveOnboardingData();
-    }
+        document.getElementById('onboard-subtitle').innerText = 'Шаг 2 из 2: Какой у тебя уровень?';
+    }, 400);
 }
 
-// Отправка результатов опроса в FastAPI
+function selectDifficulty(diff) {
+    onboardingState.difficulty = diff;
+
+    // Подсвечиваем кнопку
+    document.querySelectorAll('#step-difficulty .option-btn').forEach(b => b.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+
+    // Автоматическое сохранение через 0.4 секунды
+    setTimeout(saveOnboardingData, 400);
+}
+
 function saveOnboardingData() {
-    const btn = document.getElementById('btn-next');
-    btn.disabled = true;
-    btn.innerText = 'Настраиваем ИИ... ⚙️';
+    switchScreen('screen-loading'); // Показываем экран загрузки
 
     apiFetch('/onboarding', {
         method: 'POST',
@@ -55,19 +42,17 @@ function saveOnboardingData() {
     })
     .then(data => {
         if (data.success) {
-            // Запрашиваем свежий профиль после сохранения настроек
             return apiFetch(`/profile?chat_id=${user.id}`);
         } else {
-            throw new Error('Не удалось сохранить настройки бэкэндом');
+            throw new Error('Не удалось сохранить настройки');
         }
     })
     .then(profileData => {
         showProfileData(profileData);
-        switchScreen('screen-main'); // Переключаем на личный кабинет
+        switchScreen('screen-main'); // Открываем главное меню!
     })
     .catch(err => {
         alert('Ошибка при сохранении: ' + err.message);
-        btn.disabled = false;
-        btn.innerText = 'Начать обучение 🚀';
+        switchScreen('screen-onboarding'); // Возвращаем, если ошибка
     });
 }

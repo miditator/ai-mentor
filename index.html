@@ -34,8 +34,6 @@
                 <button class="option-btn" onclick="selectDifficulty('B2')"><span>🟡 Выше среднего (B2)</span></button>
                 <button class="option-btn" onclick="selectDifficulty('C1')"><span>🔴 Продвинутый (C1)</span></button>
             </div>
-
-            <button id="btn-next" class="btn-primary" onclick="handleNextStep()" disabled>Далее</button>
         </div>
     </div>
 
@@ -46,7 +44,16 @@
         </div>
 
         <div id="output-area" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
-            <!-- Чат пока пустой -->
+
+            <div id="profile-card" style="display: none; background-color: var(--secondary-bg-color); padding: 20px; border-radius: 16px; border: 1px solid rgba(112, 132, 153, 0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--button-color); text-align: center; font-size: 18px;">Твой профиль</h3>
+                <div class="info-row"><span class="info-label">🌍 Язык:</span><span class="info-value" id="pc-lang">-</span></div>
+                <div class="info-row"><span class="info-label">📈 Сложность:</span><span class="info-value" id="pc-diff">-</span></div>
+                <div class="info-row"><span class="info-label">📚 Слов:</span><span class="info-value" id="pc-words">-</span></div>
+                <div class="info-row"><span class="info-label">🎯 Лимит:</span><span class="info-value" id="pc-limit">-</span></div>
+            </div>
+
+            <div id="chat-messages" style="display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
 
         <div id="input-container" style="padding: 10px 15px; border-top: 1px solid rgba(112, 132, 153, 0.3); display: none; gap: 10px; background-color: var(--bg-color);">
@@ -57,18 +64,27 @@
         </div>
 
        <div id="action-keyboard" style="padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
-            <button class="btn-primary" style="margin: 0; font-size: 14px; padding: 12px 5px;" onclick="enterAddWordMode()">
+
+            <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px;" onclick="enterAddWordMode()">
                 ➕ Добавить слово
             </button>
-            <button class="btn-primary" style="margin: 0; font-size: 14px; padding: 12px 5px; background-color: #34c759;" onclick="showProfileStats()">
+            <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: #34c759;" onclick="toggleProfileStats()">
                 👤 Мой профиль
+            </button>
+
+            <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" disabled>
+                🎯 Новое задание
+            </button>
+            <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" disabled>
+                📚 Тренировка слов
+            </button>
+            <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" disabled>
+                🔥 Интенсив
+            </button>
+            <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" disabled>
+                ⚙️ Настройки
             </button>
         </div>
     </div>
 
-<script src="frontend/js/api.js"></script>
-<script src="frontend/js/onboarding.js"></script>
-<script src="frontend/js/add_word.js"></script>
-<script src="frontend/js/app.js"></script>
-</body>
-</html>
+<script src="frontend/js/
