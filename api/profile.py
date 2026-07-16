@@ -74,7 +74,7 @@ def translate_word(data: TranslateWordData):
 
         prompt = f"Переведи слово или фразу '{data.foreign}' с {lang_name} языка на русский. В ответе напиши ТОЛЬКО перевод, без лишних слов, кавычек и точек."
 
-        response = ai_client.chat.completions.create(
+        response = loader.ai_client.chat.completions.create(
             model=config.MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3

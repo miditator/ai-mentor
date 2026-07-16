@@ -17,6 +17,19 @@ function switchScreen(screenId) {
 
 function showProfileData(data) {
     window.userProfile = data;
+
+    // Сразу заполняем данные в плашке
+    const diffMap = { "A1": "Начальный (A1)", "A2": "Элементарный (A2)", "B1": "Средний (B1)", "B2": "Выше среднего (B2)", "C1": "Продвинутый (C1)" };
+    const langMap = { "en": "Английский 🇬🇧", "de": "Немецкий 🇩🇪" };
+
+    document.getElementById('pc-lang').innerText = langMap[data.language] || data.language;
+    document.getElementById('pc-diff').innerText = diffMap[data.difficulty] || data.difficulty;
+    document.getElementById('pc-words').innerText = data.words_count;
+    document.getElementById('pc-limit').innerText = `${data.words_per_day} шт.`;
+
+    // Показываем плашку профиля сразу при загрузке
+    document.getElementById('profile-card').style.display = 'block';
+    isProfileVisible = true;
 }
 
 // ==========================================
@@ -50,32 +63,7 @@ function addMessageToOutput(text, isUser = false) {
     outputArea.scrollTop = outputArea.scrollHeight;
 }
 
-function toggleProfileStats() {
-    const profileCard = document.getElementById('profile-card');
 
-    if (isProfileVisible) {
-        profileCard.style.display = 'none';
-        isProfileVisible = false;
-        return;
-    }
-
-    if (!window.userProfile) {
-        addMessageToOutput("⚠️ Данные профиля еще загружаются...", false);
-        return;
-    }
-
-    const data = window.userProfile;
-    const diffMap = { "A1": "Начальный (A1)", "A2": "Элементарный (A2)", "B1": "Средний (B1)", "B2": "Выше среднего (B2)", "C1": "Продвинутый (C1)" };
-    const langMap = { "en": "Английский 🇬🇧", "de": "Немецкий 🇩🇪" };
-
-    document.getElementById('pc-lang').innerText = langMap[data.language] || data.language;
-    document.getElementById('pc-diff').innerText = diffMap[data.difficulty] || data.difficulty;
-    document.getElementById('pc-words').innerText = data.words_count;
-    document.getElementById('pc-limit').innerText = `${data.words_per_day} шт.`;
-
-    profileCard.style.display = 'block';
-    isProfileVisible = true;
-}
 
 // ==========================================
 // Обработчик кнопки отправки (➡️)

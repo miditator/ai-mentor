@@ -114,10 +114,17 @@ function exitAddWordMode() {
     window.currentAppMode = 'menu';
     isWaitingForAi = false;
 
-    // 🧹 ИСПРАВЛЕНИЕ: Полностью очищаем чат при выходе в меню!
-    document.getElementById('chat-messages').innerHTML = '';
-    document.getElementById('user-input').value = '';
+    // 1. Принудительная очистка содержимого чата
+    const chatContainer = document.getElementById('chat-messages');
+    if (chatContainer) {
+        chatContainer.innerHTML = '';
+    }
 
+    // 2. Очистка поля ввода
+    const input = document.getElementById('user-input');
+    if (input) input.value = '';
+
+    // 3. Возврат интерфейса
     document.getElementById('top-bar').innerText = 'Главное меню';
     document.getElementById('input-container').style.display = 'none';
     document.getElementById('action-keyboard').style.display = 'grid';
