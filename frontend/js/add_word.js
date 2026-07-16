@@ -10,13 +10,16 @@ function enterAddWordMode() {
     window.currentAppMode = 'add_word';
     isWaitingForAi = false;
 
+    // 🎯 ДОБАВИЛИ: Скрываем плашку профиля при входе в режим
+    document.getElementById('profile-card').style.display = 'none';
+
     document.getElementById('top-bar').innerText = '➕ Добавление слова';
     document.getElementById('action-keyboard').style.display = 'none';
     document.getElementById('input-container').style.display = 'flex';
 
-    showTextInput(); // Показываем строку ввода текста
+    showTextInput();
 
-    addMessageToOutput('Напиши слово на иностранном языке. ИИ переведет его, а ты сможешь подтвердить сохранение 🧠✍️');
+    addMessageToOutput('Напиши слово на иностранном языке, а ИИ сам переведет его 🧠✍️');
     document.getElementById('user-input').focus();
 }
 
@@ -114,17 +117,14 @@ function exitAddWordMode() {
     window.currentAppMode = 'menu';
     isWaitingForAi = false;
 
-    // 1. Принудительная очистка содержимого чата
+    // 🧹 Очистка чата
     const chatContainer = document.getElementById('chat-messages');
-    if (chatContainer) {
-        chatContainer.innerHTML = '';
-    }
+    if (chatContainer) chatContainer.innerHTML = '';
+    document.getElementById('user-input').value = '';
 
-    // 2. Очистка поля ввода
-    const input = document.getElementById('user-input');
-    if (input) input.value = '';
+    // 🎯 ДОБАВИЛИ: Возвращаем плашку профиля при выходе в меню
+    document.getElementById('profile-card').style.display = 'block';
 
-    // 3. Возврат интерфейса
     document.getElementById('top-bar').innerText = 'Главное меню';
     document.getElementById('input-container').style.display = 'none';
     document.getElementById('action-keyboard').style.display = 'grid';
