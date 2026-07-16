@@ -53,34 +53,46 @@ def save_onboarding(data: OnboardingData):
         return {"success": False, "error": str(e)}
 
 
+class TranslateWordData(BaseModel):
+    chat_id: int
+    foreign: str
+
+
 class AddWordData(BaseModel):
     chat_id: int
     foreign: str
-    # Поле 'ru' мы убрали, его генерирует ИИ
+    ru: str
 
 
-@router.post("/words/add")
-def add_word(data: AddWordData):
+# 1. Эндпоинт ТОЛЬКО для перевода (обращается к ИИ)
+@router.post("/words/translate")
+def translate_word(data: TranslateWordData):
     try:
-        # Узнаем текущий язык пользователя
         user_config = database.get_user_config(data.chat_id)
         target_lang = user_config.get("source_lang", "en") if user_config else "en"
         lang_name = "английского" if target_lang == "en" else "немецкого"
 
-        # 🧠 Запрашиваем перевод у ИИ
         prompt = f"Переведи слово или фразу '{data.foreign}' с {lang_name} языка на русский. В ответе напиши ТОЛЬКО перевод, без лишних слов, кавычек и точек."
 
-        response = loader.ai_client.chat.completions.create(
+        response = ai_client.chat.completions.create(
             model=config.MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3
         )
         ru_translation = response.choices[0].message.content.strip()
-
-        # Сохраняем в базу данных готовую пару
-        database.add_custom_word(data.chat_id, data.foreign, ru_translation, specific_lang=target_lang)
-
-        # Возвращаем на фронтенд перевод, чтобы показать его юзеру
         return {"success": True, "ru": ru_translation}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# 2. Эндпоинт ТОЛЬКО для сохранения (кладет в БД)
+@router.post("/words/add")
+def add_word(data: AddWordData):
+    try:
+        user_config = database.get_user_config(data.chat_id)
+        target_lang = user_config.get("source_lang", "en") if user_config else "en"
+
+        database.add_custom_word(data.chat_id, data.foreign, data.ru, specific_lang=target_lang)
+        return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
