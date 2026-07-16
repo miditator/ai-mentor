@@ -84,7 +84,7 @@ function confirmAddWord() {
         if(data.success) {
             // Пишем об успехе и предлагаем ввести еще!
             addMessageToOutput(`✅ Отлично! Слово <b>${pendingForeignWord} — ${pendingRuWord}</b> добавлено в словарь.<br><br>Можешь написать следующее слово 👇`);
-            apiFetch(`/profile?chat_id=${user.id}`).then(showProfileData); // Обновляем стату
+            apiFetch(`/profile?chat_id=${user.id}`).then(updateProfileUI); // Обновляем стату
         } else {
             addMessageToOutput(`❌ Ошибка сохранения: ${data.error}`);
         }

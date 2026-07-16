@@ -48,7 +48,7 @@ function saveOnboardingData() {
         }
     })
     .then(profileData => {
-        showProfileData(profileData);
+        updateProfileUI(profileData);
         switchScreen('screen-main'); // Открываем главное меню!
     })
     .catch(err => {
