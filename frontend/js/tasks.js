@@ -40,7 +40,7 @@ function showNewTaskMode(forceNew = false) {
     document.getElementById('profile-card').style.display = 'none';
     document.getElementById('action-keyboard').style.display = 'none';
     if (document.getElementById('dictionary-keyboard')) document.getElementById('dictionary-keyboard').style.display = 'none';
-    if (document.getElementById('dummy-keyboard')) document.getElementById('dummy-keyboard').style.display = 'none';
+
 
     const inputContainer = document.getElementById('input-container');
     inputContainer.style.display = 'flex';
@@ -65,9 +65,12 @@ function showNewTaskMode(forceNew = false) {
     apiFetch(url)
         .then(data => {
             if (data.success) {
+                // 🎯 Динамически определяем название языка
+                const langName = window.userProfile?.language === 'de' ? 'немецкий' : 'английский';
+
                 // Выводим Topic на английском языке (взятый из ответа ИИ)
                 showTaskCard(`
-                    <div style="font-size: 13px; color: var(--hint-color); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">Переведи на изучаемый язык:</div>
+                    <div style="font-size: 13px; color: var(--hint-color); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">Переведи на ${langName}:</div>
                     <div style="font-size: 24px; font-weight: bold; color: var(--text-color); margin-bottom: 20px;">${data.phrase}</div>
                     <div style="font-size: 14px; color: var(--text-color); background: rgba(112, 132, 153, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid var(--button-color); text-align: left; width: 100%;">
                         <b>📚 Topic:</b> ${data.rule || "General Grammar"}
@@ -78,6 +81,7 @@ function showNewTaskMode(forceNew = false) {
                 showTaskCard(`<div style="font-size: 40px; margin-bottom: 10px;">❌</div><div>Ошибка генерации: ${data.error}</div>`);
             }
         })
+        
         .catch(err => {
             showTaskCard(`<div style="font-size: 40px; margin-bottom: 10px;">⚠️</div><div>Ошибка связи с сервером.</div>`);
         });

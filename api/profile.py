@@ -4,6 +4,9 @@ from pydantic import BaseModel
 import database
 import config
 import loader
+import aiPrompts
+import json
+import re
 
 # Создаем роутер вместо приложения app
 router = APIRouter(
@@ -67,24 +70,70 @@ class TaskHelpData(BaseModel):
     chat_id: int
     step: int
 
+class UpdateSettingData(BaseModel):
+    chat_id: int
+    setting_key: str
+    setting_value: str
 
+class IntensityStartData(BaseModel):
+    chat_id: int
+    word: str
+
+class IntensityCheckData(BaseModel):
+    chat_id: int
+    original_foreign_phrase: str
+    russian_task_phrase: str
+    user_answer: str
+
+class IntensityHelpData(BaseModel):
+    chat_id: int
+    russian_phrase: str
+    foreign_phrase: str
+
+# 1. Эндпоинт ТОЛЬКО для перевода (обращается к ИИ)
+@router.post("/words/translate")
 # 1. Эндпоинт ТОЛЬКО для перевода (обращается к ИИ)
 @router.post("/words/translate")
 def translate_word(data: TranslateWordData):
     try:
         user_config = database.get_user_config(data.chat_id)
         target_lang = user_config.get("source_lang", "en") if user_config else "en"
-        lang_name = "английского" if target_lang == "en" else "немецкого"
 
-        prompt = f"Переведи слово или фразу '{data.foreign}' с {lang_name} языка на русский. В ответе напиши ТОЛЬКО перевод, без лишних слов, кавычек и точек."
+        # 🔥 Теперь мы используем твой умный промпт из aiPrompts.py
+        prompt = aiPrompts.word_translation_prompt(data.foreign, target_lang)
 
         response = loader.ai_client.chat.completions.create(
             model=config.MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3
         )
-        ru_translation = response.choices[0].message.content.strip()
-        return {"success": True, "ru": ru_translation}
+        answer = response.choices[0].message.content.strip()
+
+        # 1. Проверка на белиберду
+        if answer == "ERROR_NONSENSE":
+            return {"success": False, "error": "nonsense"}
+
+        # 2. Проверка на опечатку
+        is_typo = False
+        if answer.startswith("TYPO ||"):
+            parts = answer.split("||")
+            if len(parts) >= 3:
+                original_word = parts[1].strip()
+                translation = parts[2].strip()
+                is_typo = True
+        else:
+            # 3. Обычный сценарий
+            parts = answer.split("||")
+            original_word = parts[0].strip()
+            translation = parts[1].strip() if len(parts) > 1 else ""
+
+        # Возвращаем новые ключи: original, translation и is_typo
+        return {
+            "success": True,
+            "original": original_word,
+            "translation": translation,
+            "is_typo": is_typo
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -114,24 +163,31 @@ class TaskAnswerData(BaseModel):
     answer: str
 
 @router.get("/tasks/new")
+@router.get("/tasks/new")
 def get_new_task(chat_id: int, force: bool = False):
     try:
         if force:
             database.delete_active_task(chat_id)
 
         active = database.get_active_task(chat_id)
+        # 🔥 ИСПРАВЛЕНО: Теперь возвращаем реальное правило, а не заглушку
         if active:
-            return {"success": True, "phrase": active["phrase"], "rule": "Rule is loaded from active task"}
+            return {
+                "success": True,
+                "phrase": active["phrase"],
+                "rule": active.get("rule", "General Grammar")
+            }
 
         user_config = database.get_user_config(chat_id)
         target_lang = user_config.get("source_lang", "en") if user_config else "en"
         lang_name = "английском" if target_lang == "en" else "немецком"
+        difficulty = user_config.get("difficulty", "A1")
 
-        words = database.get_words_for_grammar_context(chat_id, limit=2)
+        words = database.get_words_for_grammar_context(chat_id, limit=1)
         words_str = ", ".join([f"{w['foreign']} ({w['ru']})" for w in words]) if words else "базовые слова"
 
-        # 🔥 ИСПРАВЛЕНО: Просим только короткое название темы (2-3 слова) на целевом языке
-        prompt = f"Сгенерируй одно простое предложение на русском языке для перевода на {lang_name} язык. Постарайся использовать по смыслу эти слова: {words_str}.\nОтвет напиши строго в 2 строки:\n1 строка: только русское предложение (без кавычек).\n2 строка: Короткое название грамматической темы (максимум 2-3 слова на {lang_name} языке, например 'Present Perfect' или 'Modal verbs'). Никаких долгих правил."
+        #prompt = aiPrompts.webapp_new_task_prompt(lang_name, words_str)
+        prompt = aiPrompts.generate_pure_vocabulary_task_prompt_ver2(lang_name, words_str,difficulty)
 
         response = loader.ai_client.chat.completions.create(
             model=config.MODEL,
@@ -144,10 +200,12 @@ def get_new_task(chat_id: int, force: bool = False):
         ru_phrase = lines[0]
         rule = lines[1] if len(lines) > 1 else "General Grammar"
 
-        database.save_active_task(chat_id, ru_phrase, "")
+        # 🔥 ИСПРАВЛЕНО: Сохраняем правило в БД вместе с фразой
+        database.save_active_task(chat_id, ru_phrase, rule)
         return {"success": True, "phrase": ru_phrase, "rule": rule}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 @router.post("/tasks/help")
 def get_task_help(data: TaskHelpData):
@@ -162,12 +220,8 @@ def get_task_help(data: TaskHelpData):
 
         original_phrase = active["phrase"]
 
-        if data.step == 1:
-            # 🔥 ИСПРАВЛЕНО: Даем ТОЛЬКО начальные формы слов (словарь), без правил грамматики
-            prompt = f"Пользователь не может перевести фразу: '{original_phrase}' на {lang_name} язык.\nДай небольшую подсказку: напиши ТОЛЬКО начальные формы главных слов (словарь). СТРОГО НЕ ПИШИ готовый перевод всего предложения и НЕ объясняй грамматику!"
-        else:
-            # 🔥 ИСПРАВЛЕНО: Если сдался — даем ПОДРОБНОЕ объяснение
-            prompt = f"Пользователь сдался при переводе фразы: '{original_phrase}' на {lang_name} язык.\nНапиши правильный полный перевод этого предложения и дай ПОДРОБНОЕ объяснение грамматики (почему построено именно так)."
+        # 🔥 Берем промпт из файла aiPrompts
+        prompt = aiPrompts.webapp_task_help_prompt(original_phrase, lang_name, data.step)
 
         response = loader.ai_client.chat.completions.create(
             model=config.MODEL,
@@ -177,11 +231,12 @@ def get_task_help(data: TaskHelpData):
         ai_feedback = response.choices[0].message.content.strip()
 
         if data.step == 2:
-            database.delete_active_task(data.chat_id) # Задание закрывается после полного ответа
+            database.delete_active_task(data.chat_id)
 
         return {"success": True, "feedback": ai_feedback}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 @router.post("/tasks/check")
 def check_task(data: TaskAnswerData):
@@ -192,12 +247,12 @@ def check_task(data: TaskAnswerData):
 
         user_config = database.get_user_config(data.chat_id)
         target_lang = user_config.get("source_lang", "en") if user_config else "en"
-        lang_name = "английский" if target_lang == "en" else "немецкий"
+        lang_name = "английском" if target_lang == "en" else "немецком"
 
         original_phrase = active["phrase"]
 
-        # 🔥 ИСПРАВЛЕНО: При ошибке перевода требуем ПОДРОБНОЕ объяснение
-        prompt = f"Пользователь перевел фразу '{original_phrase}' на {lang_name} язык так: '{data.answer}'.\nОцени перевод. Если он правильный (допускаются мелкие опечатки), ответь только словом 'ПРАВИЛЬНО'. Если есть ошибка, укажи на нее, дай ПОДРОБНОЕ объяснение грамматического правила на русском языке и напиши правильный вариант."
+        # 🔥 Берем промпт из файла aiPrompts
+        prompt = aiPrompts.webapp_task_check_prompt(original_phrase, data.answer, lang_name)
 
         response = loader.ai_client.chat.completions.create(
             model=config.MODEL,
@@ -209,11 +264,11 @@ def check_task(data: TaskAnswerData):
         is_correct = ai_feedback.upper().startswith("ПРАВИЛЬНО")
 
         if is_correct:
-            database.delete_active_task(data.chat_id) # Задание выполнено
+            database.delete_active_task(data.chat_id)
             database.add_to_history(data.chat_id, original_phrase)
             return {"success": True, "is_correct": True, "feedback": "✅ <b>Отлично! Перевод верный.</b>"}
         else:
-            database.increment_help_count(data.chat_id) # Считаем попытки
+            database.increment_help_count(data.chat_id)
             return {"success": True, "is_correct": False, "feedback": f"❌ <b>Ошибка:</b>\n{ai_feedback}"}
 
     except Exception as e:
@@ -242,3 +297,97 @@ def check_training_answer(data: TrainingAnswerData):
         return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+
+
+
+@router.post("/settings/update")
+def update_setting(data: UpdateSettingData):
+    try:
+        # Обновляем настройку в БД (database.py должен поддерживать эту функцию)
+        database.update_user_setting(data.chat_id, data.setting_key, data.setting_value)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+
+# --- ЭНДПОИНТ 1: ГЕНЕРАЦИЯ 5 ФРАЗ (ПРОГРЕССИВНАЯ СЛОЖНОСТЬ) ---
+@router.post("/intensity/start")
+def start_intensity(data: IntensityStartData):
+    try:
+        user_config = database.get_user_config(data.chat_id)
+        target_lang = user_config.get("source_lang", "en") if user_config else "en"
+
+        # 🔥 Передаем только слово и язык. Сложность теперь жестко зашита в промпт (лесенка A1-B2)
+        prompt = aiPrompts.generate_word_intensity_prompt(data.word, target_lang)
+
+        response = loader.ai_client.chat.completions.create(
+            model=config.MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5
+        )
+
+        raw_json = response.choices[0].message.content.strip()
+
+        # Надежный парсинг JSON (чистим от markdown)
+        match = re.search(r'\[.*\]', raw_json, re.DOTALL)
+        clean_json = match.group(0) if match else raw_json
+
+        phrases_list = json.loads(clean_json)
+
+        if len(phrases_list) < 5:
+            return {"success": False, "error": "ИИ вернул неполный список"}
+
+        return {"success": True, "phrases": phrases_list, "difficulty": "Прогрессивная (A1 ➔ B2)"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# --- ЭНДПОИНТ 2: ПРОВЕРКА ОТВЕТА ---
+@router.post("/intensity/check")
+def check_intensity(data: IntensityCheckData):
+    try:
+        prompt = aiPrompts.check_intensity_answer_prompt(
+            original_foreign_phrase=data.original_foreign_phrase,
+            russian_task_phrase=data.russian_task_phrase,
+            user_foreign_answer=data.user_answer
+        )
+
+        response = loader.ai_client.chat.completions.create(
+            model=config.MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2
+        )
+
+        raw_json = response.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+        result = json.loads(raw_json)
+
+        return {
+            "success": True,
+            "is_correct": result.get("is_correct", False),
+            "feedback": result.get("feedback", "Нет комментария")
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# --- ЭНДПОИНТ 3: ПОДСКАЗКА ДЛЯ ИНТЕНСИВА ---
+@router.post("/intensity/help")
+def help_intensity(data: IntensityHelpData):
+    try:
+        prompt = aiPrompts.intensity_help_prompt(data.russian_phrase, data.foreign_phrase)
+
+        response = loader.ai_client.chat.completions.create(
+            model=config.MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )
+
+        explanation = response.choices[0].message.content.strip()
+        return {"success": True, "explanation": explanation}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+

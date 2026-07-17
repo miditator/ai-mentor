@@ -10,8 +10,24 @@ window.currentAppMode = 'menu';
 let isProfileVisible = false;
 
 function switchScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
+    const screens = document.querySelectorAll('.screen');
+    const targetScreen = document.getElementById(screenId);
+
+    // 1. Убираем класс active у всех
+    screens.forEach(s => s.classList.remove('active'));
+
+    // 2. Делаем экран видимым (display: block)
+    targetScreen.style.display = 'block';
+
+    // 3. Добавляем active с маленькой задержкой (чтобы браузер «понял», что нужно анимировать)
+    setTimeout(() => {
+        targetScreen.classList.add('active');
+
+        // 4. Через время анимации скрываем старые экраны полностью
+        screens.forEach(s => {
+            if (s.id !== screenId) s.style.display = 'none';
+        });
+    }, 50);
 }
 
 function updateProfileUI(data) {
@@ -77,6 +93,12 @@ document.getElementById('btn-send').addEventListener('click', () => {
     }
     else if (window.currentAppMode === 'training' && typeof handleTrainingInput === 'function') {
         handleTrainingInput(text);
+    }
+    else if (window.currentAppMode === 'intensity_setup') {
+    startIntensity(text);
+    }
+    else if (window.currentAppMode === 'intensity_active') {
+        handleIntensityInput(text);
     }
 });
 

@@ -183,43 +183,56 @@ def get_today_phrases_list(chat_id):
 
 # --- ФУНКЦИИ ИНТЕРВАЛЬНОГО СЛОВАРЯ ---
 
-def get_words_for_training(chat_id, limit_new=5):
-    """Вытаскивает слова на повторение + новые с фильтрацией по текущему языку"""
+def get_words_for_training(chat_id, limit_new):
+    """Умная выборка: Повторение -> Новые -> Остальные (до заполнения лимита)"""
     user_config = get_user_config(chat_id)
     current_lang = user_config.get("source_lang", "en") if user_config else "en"
 
     conn = sqlite3.connect(DB_NAME, check_same_thread=False)
     cursor = conn.cursor()
 
+    result = []
+
+    # 1. Берем слова, время повторения которых настало (Приоритет 1)
     cursor.execute("""
                    SELECT id, word_foreign, word_ru, score
                    FROM user_dictionary
                    WHERE chat_id = ?
                      AND lang = ?
                      AND score > 0
-                     AND next_review <= DATE ('now', 'localtime')
-                   """, (chat_id, current_lang))
-    repeat_words = cursor.fetchall()
-
-    cursor.execute("""
-                   SELECT id, word_foreign, word_ru, score
-                   FROM user_dictionary
-                   WHERE chat_id = ?
-                     AND lang = ?
-                     AND score = 0 LIMIT ?
+                     AND next_review <= DATE ('now'
+                       , 'localtime')
+                       LIMIT ?
                    """, (chat_id, current_lang, limit_new))
-    new_words = cursor.fetchall()
+    result.extend(cursor.fetchall())
 
-    result = repeat_words + new_words
-
-    if not result:
+    # 2. Если слов меньше лимита, добираем новые слова (Приоритет 2)
+    if len(result) < limit_new:
+        remaining = limit_new - len(result)
         cursor.execute("""
                        SELECT id, word_foreign, word_ru, score
                        FROM user_dictionary
                        WHERE chat_id = ?
-                         AND lang = ? LIMIT ?
-                       """, (chat_id, current_lang, limit_new))
-        result = cursor.fetchall()
+                         AND lang = ?
+                         AND score = 0 LIMIT ?
+                       """, (chat_id, current_lang, remaining))
+        result.extend(cursor.fetchall())
+
+    # 3. Если всё еще меньше лимита, берем "остальные" слова, которые в процессе (Приоритет 3)
+    if len(result) < limit_new:
+        remaining = limit_new - len(result)
+        # Исключаем уже взятые ID, чтобы не было дублей
+        used_ids = [r[0] for r in result]
+        placeholders = ','.join(['?'] * len(used_ids)) if used_ids else "0"
+
+        query = f"""
+            SELECT id, word_foreign, word_ru, score FROM user_dictionary
+            WHERE chat_id = ? AND lang = ? AND id NOT IN ({placeholders})
+            ORDER BY RANDOM() LIMIT ?
+        """
+        params = [chat_id, current_lang] + used_ids + [remaining]
+        cursor.execute(query, params)
+        result.extend(cursor.fetchall())
 
     conn.close()
     return result
@@ -307,7 +320,7 @@ def add_custom_word(chat_id, word_foreign, word_ru, specific_lang=None):
     return saved
 
 
-def get_words_for_grammar_context(chat_id, limit=2):
+def get_words_for_grammar_context(chat_id, limit=1):
     """Вытаскивает N слов активного языка."""
     user_config = get_user_config(chat_id)
     current_lang = user_config.get("source_lang", "en") if user_config else "en"
