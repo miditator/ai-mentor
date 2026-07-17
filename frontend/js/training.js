@@ -8,6 +8,24 @@ let trainingState = {
     currentGuesses: 0     // Сколько раз уже угадали это слово
 };
 
+
+function showTrainingMenu() {
+    window.currentAppMode = 'training';
+    document.getElementById('top-bar').innerText = '📚 Тренировка';
+
+    // Скрываем все лишнее
+    document.getElementById('profile-card').style.display = 'none';
+    document.getElementById('action-keyboard').style.display = 'none';
+    document.getElementById('input-container').style.display = 'none';
+    document.getElementById('dictionary-keyboard').style.display = 'none';
+
+    // Показываем меню выбора количества слов
+    document.getElementById('training-menu-keyboard').style.display = 'grid';
+    document.getElementById('chat-messages').innerHTML = 'Выберите количество слов для тренировки:';
+}
+
+
+
 // Функция переключения направления
 function toggleSwap() {
     trainingState.swapped = !trainingState.swapped;
