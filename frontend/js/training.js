@@ -3,7 +3,7 @@
 let trainingState = {
     words: [],
     currentIndex: 0,
-    swapped: false
+    swapped: true // 1) ИЗМЕНЕНИЕ: Теперь по умолчанию стоит TRUE (Русский -> Иностранный)
 };
 
 function showTrainingMenu() {
@@ -76,9 +76,9 @@ function handleTrainingInput(text) {
 
     if (isCorrect) {
         wordObj.correctGuesses++;
-        addMessageToOutput(`✅ Верно!`);
 
         if (wordObj.correctGuesses >= 3) {
+            addMessageToOutput(`✅ <b>Верно!</b> Слово выучено!`);
             // Слово выучено 3 раза — фиксируем в базе данных
             apiFetch('/train/check', {
                 method: 'POST',
@@ -86,6 +86,7 @@ function handleTrainingInput(text) {
                 body: JSON.stringify({ chat_id: user.id, word_id: wordObj.id, is_correct: true })
             });
         } else {
+            addMessageToOutput(`✅ <b>Верно!</b>`);
             // Угадали, но меньше 3 раз. Кидаем слово в конец очереди (Карусель)
             trainingState.words.push({ ...wordObj });
         }
@@ -104,9 +105,9 @@ function handleTrainingInput(text) {
         trainingState.words.push({ ...wordObj });
     }
 
-    // В любом случае переключаемся на следующее слово (через секунду, чтобы успеть прочитать ответ)
+    // 2) ИЗМЕНЕНИЕ: Убрана задержка. Сразу же переходим к следующему слову
     trainingState.currentIndex++;
-    setTimeout(showCurrentWord, 1000);
+    showCurrentWord();
 }
 
 function showHelp() {
@@ -128,7 +129,7 @@ function showHelp() {
     wordObj.correctGuesses = 0;
     trainingState.words.push({ ...wordObj });
 
-    // СРАЗУ ЖЕ переходим к следующему слову
+    // 3) ИЗМЕНЕНИЕ: Убрана задержка. Сразу же переходим к следующему слову
     trainingState.currentIndex++;
-    setTimeout(showCurrentWord, 1000);
+    showCurrentWord();
 }
