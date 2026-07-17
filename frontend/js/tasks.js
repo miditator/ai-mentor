@@ -1,15 +1,21 @@
-// frontend/js/task.js
+// ==========================================
+// РЕЖИМ: НОВОЕ ЗАДАНИЕ (tasks.js)
+// ==========================================
 
-// ==========================================
-// РЕЖИМ: НОВОЕ ЗАДАНИЕ
-// ==========================================
+// 🎯 Вспомогательная функция для отрисовки карточки задания
+function showTaskCard(htmlContent) {
+    const chatContainer = document.getElementById('chat-messages');
+    chatContainer.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 250px; background-color: var(--secondary-bg-color); border-radius: 16px; border: 1px solid rgba(112, 132, 153, 0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 20px; margin-top: 20px; text-align: center;">
+            ${htmlContent}
+        </div>`;
+}
 
 function showNewTaskMode() {
     window.currentAppMode = 'task';
     document.getElementById('top-bar').innerText = '🎯 Новое задание';
 
     document.getElementById('profile-card').style.display = 'none';
-    document.getElementById('chat-messages').innerHTML = '<i>ИИ составляет предложение из твоих слов... ⏳</i>';
 
     // Прячем меню
     document.getElementById('action-keyboard').style.display = 'none';
@@ -21,55 +27,73 @@ function showNewTaskMode() {
     inputContainer.style.display = 'flex';
     document.getElementById('text-input-row').style.display = 'flex';
     document.getElementById('confirm-row').style.display = 'none';
-
-    // ВАЖНО: Показываем кнопку "Ещё 1 задание"
     document.getElementById('btn-next-task').style.display = 'block';
 
     const userInput = document.getElementById('user-input');
-    userInput.value = ''; // Очищаем поле от старого ответа
+    userInput.value = '';
     userInput.placeholder = "Напиши перевод...";
-    userInput.focus();
+
+    // 🎨 Карточка загрузки
+    showTaskCard(`
+        <div style="font-size: 40px; margin-bottom: 15px;">⏳</div>
+        <div style="font-size: 16px; color: var(--hint-color);">ИИ составляет предложение из твоих слов...</div>
+    `);
 
     // Запрашиваем задание
     apiFetch(`/tasks/new?chat_id=${user.id}`)
         .then(data => {
-            document.getElementById('chat-messages').innerHTML = '';
             if (data.success) {
-                addMessageToOutput(`<b>Переведи на изучаемый язык:</b><br><br>🇷🇺 <i>${data.phrase}</i>`);
+                // 🎨 Карточка с заданием
+                showTaskCard(`
+                    <div style="font-size: 13px; color: var(--hint-color); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">Переведи на изучаемый язык:</div>
+                    <div style="font-size: 24px; font-weight: bold; color: var(--text-color); margin-bottom: 10px;">${data.phrase}</div>
+                `);
+                userInput.focus();
             } else {
-                addMessageToOutput("❌ Ошибка генерации: " + data.error);
+                showTaskCard(`<div style="font-size: 40px; margin-bottom: 10px;">❌</div><div>Ошибка генерации: ${data.error}</div>`);
             }
         })
         .catch(err => {
-            console.error(err);
-            document.getElementById('chat-messages').innerHTML = '<i>❌ Ошибка связи с сервером.</i>';
+            showTaskCard(`<div style="font-size: 40px; margin-bottom: 10px;">⚠️</div><div>Ошибка связи с сервером.</div>`);
         });
 }
 
 function handleTaskInput(text) {
-    addMessageToOutput("<i>Проверка ИИ... ⏳</i>");
-    document.getElementById('text-input-row').style.display = 'none'; // блокируем ввод временно
+    // 🎨 Карточка проверки
+    showTaskCard(`
+        <div style="font-size: 40px; margin-bottom: 15px;">🤖</div>
+        <div style="font-size: 16px; color: var(--hint-color);">ИИ проверяет грамматику...</div>
+    `);
+    document.getElementById('text-input-row').style.display = 'none';
 
     apiFetch('/tasks/check', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: user.id, answer: text })
     }).then(data => {
         if (data.success) {
-            addMessageToOutput(data.feedback);
             if (data.is_correct) {
-                // Если ответ верный — ничего не делаем, пользователь нажмет кнопку сам
+                // 🎨 Карточка успеха (ответ от ИИ)
+                showTaskCard(`
+                    <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
+                    <div style="font-size: 16px; color: var(--text-color); text-align: left; line-height: 1.5;">${data.feedback}</div>
+                `);
             } else {
-                // Если ошибка — разрешаем ввести заново
+                // 🎨 Карточка ошибки (ответ от ИИ)
+                showTaskCard(`
+                    <div style="font-size: 50px; margin-bottom: 10px;">❌</div>
+                    <div style="font-size: 16px; color: var(--text-color); text-align: left; line-height: 1.5; margin-bottom: 15px;">${data.feedback}</div>
+                    <div style="font-size: 13px; color: var(--hint-color);">Попробуй еще раз 👇</div>
+                `);
                 document.getElementById('text-input-row').style.display = 'flex';
                 document.getElementById('user-input').focus();
             }
         } else {
-            addMessageToOutput("❌ Ошибка проверки: " + data.error);
+            showTaskCard(`<div style="font-size: 40px; margin-bottom: 10px;">❌</div><div>Ошибка проверки: ${data.error}</div>`);
             document.getElementById('text-input-row').style.display = 'flex';
         }
     }).catch(err => {
-        console.error(err);
-        addMessageToOutput("❌ Ошибка сети.");
+        showTaskCard(`<div style="font-size: 40px; margin-bottom: 10px;">⚠️</div><div>Ошибка сети.</div>`);
         document.getElementById('text-input-row').style.display = 'flex';
     });
 }
