@@ -93,19 +93,14 @@ apiFetch(`/profile?chat_id=${user.id}`)
 // ==========================================
 
 // 1. Режим "Словарь" (Демонстрационный)
+// 1. Режим "Словарь" (Реальные данные)
 function showFullDictionary() {
     window.currentAppMode = 'dictionary';
     document.getElementById('top-bar').innerText = '📚 Мой словарь';
 
-    // Прячем профиль и выводим демо-данные
+    // Прячем профиль и выводим статус загрузки
     document.getElementById('profile-card').style.display = 'none';
-    document.getElementById('chat-messages').innerHTML = `
-        <b>Список слов (Демо):</b><br><br>
-        • <b>Apple</b> — <i>Яблоко</i><br>
-        • <b>House</b> — <i>Дом</i><br>
-        • <b>Water</b> — <i>Вода</i><br>
-        • <b>Fire</b> — <i>Огонь</i>
-    `;
+    document.getElementById('chat-messages').innerHTML = '<i>Загрузка словаря...</i>';
 
     // Переключаем клавиатуры
     document.getElementById('action-keyboard').style.display = 'none';
@@ -113,6 +108,36 @@ function showFullDictionary() {
     if (document.getElementById('dummy-keyboard')) document.getElementById('dummy-keyboard').style.display = 'none';
 
     document.getElementById('dictionary-keyboard').style.display = 'grid';
+
+    // Делаем реальный запрос к бэкенду
+    apiFetch(`/api/words/all?chat_id=${user.id}`)
+        .then(data => {
+            document.getElementById('chat-messages').innerHTML = ''; // Очищаем статус
+
+            if (data.success && data.words && data.words.length > 0) {
+                let html = '<b>Твои слова:</b><br><br>';
+
+                data.words.forEach(w => {
+                    // Поддержка и массивов [en, ru, score], и объектов (на случай разных версий БД)
+                    let foreign = w.word_foreign || w.foreign || w[0];
+                    let ru = w.word_ru || w.ru || w[1];
+                    let score = w.score !== undefined ? w.score : (w[2] || 0);
+
+                    // Переводим score (0-5) в проценты (0-100%)
+                    let percent = Math.round((score / 5) * 100);
+
+                    html += `• <b>${foreign}</b> — <i>${ru}</i> [${percent}%]<br>`;
+                });
+
+                addMessageToOutput(html);
+            } else {
+                addMessageToOutput("Словарь пока пуст. Самое время добавить новое слово! ✍️");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('chat-messages').innerHTML = '<i>❌ Ошибка при загрузке словаря.</i>';
+        });
 }
 
 // 2. Режим-заглушка для остальных 4 разделов (Задания, Интенсив и т.д.)
