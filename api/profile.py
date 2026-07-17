@@ -110,6 +110,7 @@ class TaskAnswerData(BaseModel):
     answer: str
 
 @router.get("/tasks/new")
+@router.get("/tasks/new")
 def get_new_task(chat_id: int, force: bool = False):
     try:
         # 1. Если force=True или задачи нет, удаляем старую
@@ -118,30 +119,34 @@ def get_new_task(chat_id: int, force: bool = False):
 
         active = database.get_active_task(chat_id)
         if active:
-            return {"success": True, "phrase": active["phrase"]}
+            return {"success": True, "phrase": active["phrase"], "rule": "Повторная попытка"}
 
         # 2. Узнаем язык пользователя
         user_config = database.get_user_config(chat_id)
         target_lang = user_config.get("source_lang", "en") if user_config else "en"
         lang_name = "английском" if target_lang == "en" else "немецком"
 
-        # 3. Достаем его слова для контекста (чтобы ИИ делал предложения с ними)
+        # 3. Достаем его слова для контекста
         words = database.get_words_for_grammar_context(chat_id, limit=2)
         words_str = ", ".join([f"{w['foreign']} ({w['ru']})" for w in words]) if words else "базовые слова"
 
-        # 4. Просим ИИ сгенерировать предложение
-        prompt = f"Сгенерируй одно простое предложение на русском языке для перевода на {lang_name} язык. Постарайся использовать по смыслу эти слова: {words_str}. В ответе напиши ТОЛЬКО русское предложение без кавычек и перевода."
+        # 4. Просим ИИ сгенерировать предложение и правило
+        prompt = f"Сгенерируй одно простое предложение на русском языке для перевода на {lang_name} язык. Постарайся использовать по смыслу эти слова: {words_str}.\nОтвет напиши строго в 2 строки:\n1 строка: только русское предложение (без кавычек).\n2 строка: Грамматическое правило, которое тут тренируется."
 
         response = loader.ai_client.chat.completions.create(
             model=config.MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
-        ru_phrase = response.choices[0].message.content.strip()
+        content = response.choices[0].message.content.strip()
+        lines = [line.strip() for line in content.split('\n') if line.strip()]
+
+        ru_phrase = lines[0]
+        rule = lines[1] if len(lines) > 1 else "Основная грамматика"
 
         # 5. Сохраняем в активные задачи
         database.save_active_task(chat_id, ru_phrase, "")
-        return {"success": True, "phrase": ru_phrase}
+        return {"success": True, "phrase": ru_phrase, "rule": rule}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
