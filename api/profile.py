@@ -63,6 +63,10 @@ class AddWordData(BaseModel):
     foreign: str
     ru: str
 
+class TaskHelpData(BaseModel):
+    chat_id: int
+    step: int
+
 
 # 1. Эндпоинт ТОЛЬКО для перевода (обращается к ИИ)
 @router.post("/words/translate")
@@ -110,28 +114,24 @@ class TaskAnswerData(BaseModel):
     answer: str
 
 @router.get("/tasks/new")
-@router.get("/tasks/new")
 def get_new_task(chat_id: int, force: bool = False):
     try:
-        # 1. Если force=True или задачи нет, удаляем старую
         if force:
             database.delete_active_task(chat_id)
 
         active = database.get_active_task(chat_id)
         if active:
-            return {"success": True, "phrase": active["phrase"], "rule": "Повторная попытка"}
+            return {"success": True, "phrase": active["phrase"], "rule": "Rule is loaded from active task"}
 
-        # 2. Узнаем язык пользователя
         user_config = database.get_user_config(chat_id)
         target_lang = user_config.get("source_lang", "en") if user_config else "en"
         lang_name = "английском" if target_lang == "en" else "немецком"
 
-        # 3. Достаем его слова для контекста
         words = database.get_words_for_grammar_context(chat_id, limit=2)
         words_str = ", ".join([f"{w['foreign']} ({w['ru']})" for w in words]) if words else "базовые слова"
 
-        # 4. Просим ИИ сгенерировать предложение и правило
-        prompt = f"Сгенерируй одно простое предложение на русском языке для перевода на {lang_name} язык. Постарайся использовать по смыслу эти слова: {words_str}.\nОтвет напиши строго в 2 строки:\n1 строка: только русское предложение (без кавычек).\n2 строка: Грамматическое правило, которое тут тренируется."
+        # 🔥 ИЗМЕНЕНИЕ: Жестко требуем правило на ИЗУЧАЕМОМ языке
+        prompt = f"Сгенерируй одно простое предложение на русском языке для перевода на {lang_name} язык. Постарайся использовать по смыслу эти слова: {words_str}.\nОтвет напиши строго в 2 строки:\n1 строка: только русское предложение (без кавычек).\n2 строка: Грамматическое правило (на {lang_name} языке), которое тут тренируется."
 
         response = loader.ai_client.chat.completions.create(
             model=config.MODEL,
@@ -142,11 +142,44 @@ def get_new_task(chat_id: int, force: bool = False):
         lines = [line.strip() for line in content.split('\n') if line.strip()]
 
         ru_phrase = lines[0]
-        rule = lines[1] if len(lines) > 1 else "Основная грамматика"
+        rule = lines[1] if len(lines) > 1 else "General Grammar"
 
-        # 5. Сохраняем в активные задачи
         database.save_active_task(chat_id, ru_phrase, "")
         return {"success": True, "phrase": ru_phrase, "rule": rule}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@router.post("/tasks/help")
+def get_task_help(data: TaskHelpData):
+    try:
+        active = database.get_active_task(data.chat_id)
+        if not active:
+            return {"success": False, "error": "Нет активного задания."}
+
+        user_config = database.get_user_config(data.chat_id)
+        target_lang = user_config.get("source_lang", "en") if user_config else "en"
+        lang_name = "английском" if target_lang == "en" else "немецком"
+
+        original_phrase = active["phrase"]
+
+        if data.step == 1:
+            # Шаг 1: Даем только словарь и правило (как в боте)
+            prompt = f"Пользователь не может перевести фразу: '{original_phrase}' на {lang_name} язык.\nДай небольшую подсказку: напиши начальные формы главных слов (словарь) и кратко напомни правило грамматики. СТРОГО НЕ ПИШИ готовый перевод всего предложения!"
+        else:
+            # Шаг 2: Сдался — даем полный ответ (как в боте)
+            prompt = f"Пользователь сдался при переводе фразы: '{original_phrase}' на {lang_name} язык.\nНапиши правильный полный перевод этого предложения и очень коротко объясни грамматику."
+
+        response = loader.ai_client.chat.completions.create(
+            model=config.MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5
+        )
+        ai_feedback = response.choices[0].message.content.strip()
+
+        if data.step == 2:
+            database.delete_active_task(data.chat_id) # Задание закрывается после полного ответа
+
+        return {"success": True, "feedback": ai_feedback}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
