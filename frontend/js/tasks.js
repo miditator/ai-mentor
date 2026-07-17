@@ -50,16 +50,20 @@ function handleTaskInput(text) {
     addMessageToOutput("<i>Проверка ИИ... ⏳</i>");
     document.getElementById('text-input-row').style.display = 'none'; // блокируем ввод временно
 
+    // ИСПРАВЛЕНИЕ: Добавлены headers, чтобы FastAPI (Pydantic BaseModel) не выдавал ошибку 422
     apiFetch('/tasks/check', {
         method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ chat_id: user.id, answer: text })
     }).then(data => {
         if (data.success) {
             addMessageToOutput(data.feedback);
             if (data.is_correct) {
-                // Если ответ верный — ничего не делаем, пользователь нажмет кнопку сам
+                // Верно — ничего не делаем, пользователь сам нажмет кнопку "Ещё 1 задание"
             } else {
-                // Если ошибка — разрешаем ввести заново
+                // Ошибка — разрешаем ввести заново
                 document.getElementById('text-input-row').style.display = 'flex';
                 document.getElementById('user-input').focus();
             }

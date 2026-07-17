@@ -15,7 +15,6 @@ function switchScreen(screenId) {
 }
 
 function updateProfileUI(data) {
-    console.log("Данные от сервера:", data);
     window.userProfile = data;
 
     const diffMap = { "A1": "Начальный (A1)", "A2": "Элементарный (A2)", "B1": "Средний (B1)", "B2": "Выше среднего (B2)", "C1": "Продвинутый (C1)" };
@@ -73,7 +72,7 @@ document.getElementById('btn-send').addEventListener('click', () => {
 
     if (window.currentAppMode === 'add_word' && typeof handleAddWordInput === 'function') {
         handleAddWordInput(text);
-    } else if (window.currentAppMode === 'task') {
+    } else if (window.currentAppMode === 'task' && typeof handleTaskInput === 'function') {
         handleTaskInput(text); // Обработка ответа на задание
     }
 });
@@ -96,38 +95,30 @@ apiFetch(`/profile?chat_id=${user.id}`)
 // УПРАВЛЕНИЕ ИНТЕРФЕЙСАМИ (БЕЗ БЭКЕНДА)
 // ==========================================
 
-// 1. Режим "Словарь" (Демонстрационный)
-// 1. Режим "Словарь" (Реальные данные)
 function showFullDictionary() {
     window.currentAppMode = 'dictionary';
     document.getElementById('top-bar').innerText = '📚 Мой словарь';
 
-    // Прячем профиль и выводим статус загрузки
     document.getElementById('profile-card').style.display = 'none';
     document.getElementById('chat-messages').innerHTML = '<i>Загрузка словаря...</i>';
 
-    // Переключаем клавиатуры
     document.getElementById('action-keyboard').style.display = 'none';
     if (document.getElementById('input-container')) document.getElementById('input-container').style.display = 'none';
     if (document.getElementById('dummy-keyboard')) document.getElementById('dummy-keyboard').style.display = 'none';
 
     document.getElementById('dictionary-keyboard').style.display = 'grid';
 
-    // Делаем реальный запрос к бэкенду
     apiFetch(`/words/all?chat_id=${user.id}`)
         .then(data => {
-            document.getElementById('chat-messages').innerHTML = ''; // Очищаем статус
+            document.getElementById('chat-messages').innerHTML = '';
 
             if (data.success && data.words && data.words.length > 0) {
                 let html = '<b>Твои слова:</b><br><br>';
 
                 data.words.forEach(w => {
-                    // Поддержка и массивов [en, ru, score], и объектов (на случай разных версий БД)
                     let foreign = w.word_foreign || w.foreign || w[0];
                     let ru = w.word_ru || w.ru || w[1];
                     let score = w.score !== undefined ? w.score : (w[2] || 0);
-
-                    // Переводим score (0-5) в проценты (0-100%)
                     let percent = Math.round((score / 5) * 100);
 
                     html += `• <b>${foreign}</b> — <i>${ru}</i> [${percent}%]<br>`;
@@ -144,43 +135,35 @@ function showFullDictionary() {
         });
 }
 
-// 2. Режим-заглушка для остальных 4 разделов (Задания, Интенсив и т.д.)
 function showDummyMode(title) {
     window.currentAppMode = 'dummy';
-    // Меняем заголовок на название нажатой кнопки
     document.getElementById('top-bar').innerText = title;
 
-    // Прячем профиль, выводим сообщение в чат
     document.getElementById('profile-card').style.display = 'none';
     document.getElementById('chat-messages').innerHTML = `<i>Раздел "${title}" находится в разработке 🛠</i>`;
 
-    // Переключаем клавиатуры
     document.getElementById('action-keyboard').style.display = 'none';
     if (document.getElementById('dictionary-keyboard')) document.getElementById('dictionary-keyboard').style.display = 'none';
     if (document.getElementById('input-container')) document.getElementById('input-container').style.display = 'none';
 
-    // Показываем клавиатуру заглушки (с кнопкой выхода)
     document.getElementById('dummy-keyboard').style.display = 'grid';
 }
 
-// 3. Единый выход в Главное меню
 function exitToMainMenu() {
     window.currentAppMode = 'menu';
     document.getElementById('top-bar').innerText = 'Главное меню';
 
-    // Очищаем окно вывода и возвращаем нашу плашку с инфой
     document.getElementById('chat-messages').innerHTML = '';
     document.getElementById('profile-card').style.display = 'block';
 
-    // Прячем все побочные клавиатуры и инпуты
     if (document.getElementById('dictionary-keyboard')) document.getElementById('dictionary-keyboard').style.display = 'none';
     if (document.getElementById('input-container')) document.getElementById('input-container').style.display = 'none';
     if (document.getElementById('dummy-keyboard')) document.getElementById('dummy-keyboard').style.display = 'none';
 
-    // Обязательно возвращаем основную клавиатуру
+    // Скрываем кнопку задания
     if (document.getElementById('btn-next-task')) document.getElementById('btn-next-task').style.display = 'none';
+
     document.getElementById('action-keyboard').style.display = 'grid';
     document.getElementById('user-input').placeholder = "Напиши слово...";
     document.getElementById('text-input-row').style.display = 'flex';
 }
-
