@@ -59,6 +59,10 @@
                 <div id="chat-messages" style="display: flex; flex-direction: column; gap: 10px;"></div>
             </div>
 
+    <!-- ============================== -->
+            <!-- ЗОНА УПРАВЛЕНИЯ (КЛАВИАТУРЫ)   -->
+            <!-- ============================== -->
+
             <!-- 1. Блок добавления слова -->
             <div id="input-container" style="padding: 15px; border-top: 1px solid rgba(112, 132, 153, 0.3); display: none; flex-direction: column; gap: 12px; background-color: var(--bg-color);">
                 <div id="text-input-row" style="display: flex; gap: 10px;">
@@ -66,31 +70,49 @@
                     <button class="btn-primary" id="btn-send" style="margin: 0; width: 50px; padding: 0; display: flex; justify-content: center; align-items: center; border-radius: 10px;">➡️</button>
                 </div>
                 <div id="confirm-row" style="display: none; gap: 10px;">
-                    <button class="btn-primary" style="margin: 0; flex: 1; font-size: 14px; padding: 12px; background-color: #34c759;" onclick="confirmAddWord()">✅ Сохранить</button>
-                    <button class="btn-primary" style="margin: 0; flex: 1; font-size: 14px; padding: 12px; background-color: var(--secondary-bg-color); color: var(--text-color); border: 1px solid rgba(112, 132, 153, 0.3);" onclick="rejectAddWord()">🔄 Другое</button>
+                    <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; flex: 1; background-color: #34c759;" onclick="confirmAddWord()">✅ Сохранить</button>
+                    <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; flex: 1; background-color: var(--secondary-bg-color); color: var(--text-color); border: 1px solid rgba(112, 132, 153, 0.3);" onclick="rejectAddWord()">🔄 Другое</button>
                 </div>
-                <button class="btn-primary" style="margin: 0; width: 100%; font-size: 15px; padding: 14px; background-color: var(--secondary-bg-color); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3);" onclick="exitToMainMenu()">❌ Выход в меню</button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; width: 100%; background-color: var(--secondary-bg-color); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3);" onclick="exitToMainMenu()">❌ Выход в меню</button>
             </div>
 
-            <!-- 2. Главное меню (ВСЕ 6 КНОПОК) -->
+            <!-- 2. Главное меню (Твой старый стиль + Подключенные функции) -->
             <div id="action-keyboard" style="padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
-                <button class="btn-primary" onclick="enterAddWordMode()">➕ Добавить слово</button>
-                <button class="btn-primary" style="background-color: var(--hint-color);" onclick="showFullDictionary()">📚 Словарь</button>
-                <button class="btn-primary" style="background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('🎯 Новое задание')">🎯 Новое задание</button>
-                <button class="btn-primary" style="background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('📚 Тренировка')">📚 Тренировка</button>
-                <button class="btn-primary" style="background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('🔥 Интенсив')">🔥 Интенсив</button>
-                <button class="btn-primary" style="background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('⚙️ Настройки')">⚙️ Настройки</button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px;" onclick="enterAddWordMode()">
+                    ➕ Добавить слово
+                </button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: var(--hint-color);" onclick="showFullDictionary()">
+                    📚 Словарь
+                </button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('🎯 Новое задание')">
+                    🎯 Новое задание
+                </button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('📚 Тренировка слов')">
+                    📚 Тренировка слов
+                </button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 112, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('🔥 Интенсив')">
+                    🔥 Интенсив
+                </button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('⚙️ Настройки')">
+                    ⚙️ Настройки
+                </button>
             </div>
 
             <!-- 3. Режим Словаря (Клавиатура) -->
             <div id="dictionary-keyboard" style="padding: 15px; display: none; grid-template-columns: 1fr 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
-                <button class="btn-primary" style="background-color: #34c759;" onclick="enterAddWordMode()">➕ Добавить</button>
-                <button class="btn-primary" style="background-color: #ff3b30;" onclick="exitToMainMenu()">❌ В меню</button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: #34c759;" onclick="enterAddWordMode()">
+                    ➕ Добавить
+                </button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: #ff3b30;" onclick="exitToMainMenu()">
+                    ❌ В меню
+                </button>
             </div>
 
-            <!-- 4. Режим Заглушки (для дополнительных кнопок) -->
+            <!-- 4. Режим Заглушки (для 4 дополнительных кнопок) -->
             <div id="dummy-keyboard" style="padding: 15px; display: none; grid-template-columns: 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
-                <button class="btn-primary" style="background-color: #ff3b30;" onclick="exitToMainMenu()">❌ Вернуться в главное меню</button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: #ff3b30;" onclick="exitToMainMenu()">
+                    ❌ Вернуться в главное меню
+                </button>
             </div>
 
         </div>
