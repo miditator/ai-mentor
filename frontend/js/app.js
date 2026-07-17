@@ -73,11 +73,17 @@ document.getElementById('btn-send').addEventListener('click', () => {
     if (window.currentAppMode === 'add_word' && typeof handleAddWordInput === 'function') {
         handleAddWordInput(text);
     } else if (window.currentAppMode === 'task' && typeof handleTaskInput === 'function') {
-        handleTaskInput(text); // Обработка ответа на задание
+        handleTaskInput(text);
     }
     else if (window.currentAppMode === 'training' && typeof handleTrainingInput === 'function') {
-        // Вот эта часть была пропущена, теперь она будет передавать ответы в training.js
         handleTrainingInput(text);
+    }
+});
+
+// НОВОВВЕДЕНИЕ: Обработка нажатия Enter на клавиатуре
+document.getElementById('user-input').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        document.getElementById('btn-send').click();
     }
 });
 
