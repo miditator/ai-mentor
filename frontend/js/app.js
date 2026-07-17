@@ -75,6 +75,10 @@ document.getElementById('btn-send').addEventListener('click', () => {
     } else if (window.currentAppMode === 'task' && typeof handleTaskInput === 'function') {
         handleTaskInput(text); // Обработка ответа на задание
     }
+    else if (window.currentAppMode === 'training' && typeof handleTrainingInput === 'function') {
+        // Вот эта часть была пропущена, теперь она будет передавать ответы в training.js
+        handleTrainingInput(text);
+    }
 });
 
 // Запрос профиля
@@ -82,11 +86,7 @@ apiFetch(`/profile?chat_id=${user.id}`)
     .then(data => {
         if (data.is_new_user) {
             switchScreen('screen-onboarding');
-        }
-        else if (window.currentAppMode === 'training') {
-    handleTrainingInput(text);
-        }
-        else {
+        } else {
             updateProfileUI(data);
             switchScreen('screen-main');
         }
