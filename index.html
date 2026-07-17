@@ -9,6 +9,7 @@
 </head>
 <body>
 
+    <!-- ЭКРАН ЗАГРУЗКИ -->
     <div id="screen-loading" class="screen active">
         <div class="loader">
             <span style="font-size: 40px;">⏳</span>
@@ -16,6 +17,7 @@
         </div>
     </div>
 
+    <!-- ЭКРАН ОНБОРДИНГА -->
     <div id="screen-onboarding" class="screen">
         <div class="card">
             <span style="font-size: 44px;">🎓</span>
@@ -37,6 +39,7 @@
         </div>
     </div>
 
+    <!-- ГЛАВНЫЙ ЭКРАН ПРИЛОЖЕНИЯ -->
     <div id="screen-main" class="screen">
         <div style="height: 100vh; display: flex; flex-direction: column; background-color: var(--bg-color);">
 
@@ -56,24 +59,38 @@
                 <div id="chat-messages" style="display: flex; flex-direction: column; gap: 10px;"></div>
             </div>
 
-            <!-- 1. Блок добавления слова -->
+            <!-- ============================== -->
+            <!-- ЗОНА УПРАВЛЕНИЯ (КЛАВИАТУРЫ)   -->
+            <!-- ============================== -->
+
+            <!-- 1. Блок добавления слова и решения заданий -->
             <div id="input-container" style="padding: 15px; border-top: 1px solid rgba(112, 132, 153, 0.3); display: none; flex-direction: column; gap: 12px; background-color: var(--bg-color);">
+
+                <!-- Строка ввода -->
                 <div id="text-input-row" style="display: flex; gap: 10px;">
                     <input type="text" id="user-input" placeholder="Напиши слово..." style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid rgba(112, 132, 153, 0.5); background: var(--secondary-bg-color); color: var(--text-color); font-size: 16px; outline: none;">
                     <button class="btn-primary" id="btn-send" style="margin: 0; width: 50px; padding: 0; display: flex; justify-content: center; align-items: center; border-radius: 10px;">➡️</button>
                 </div>
+
+                <!-- Строка подтверждения (для добавления слов) -->
                 <div id="confirm-row" style="display: none; gap: 10px;">
                     <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; flex: 1; background-color: #34c759;" onclick="confirmAddWord()">✅ Сохранить</button>
                     <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; flex: 1; background-color: var(--secondary-bg-color); color: var(--text-color); border: 1px solid rgba(112, 132, 153, 0.3);" onclick="rejectAddWord()">🔄 Другое</button>
                 </div>
-                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; width: 100%; background-color: var(--secondary-bg-color); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3);" onclick="exitToMainMenu()">❌ Выход в меню</button>
+
+                <!-- НИЖНИЕ КНОПКИ (Выход и Новое задание) -->
+                <div id="bottom-actions-row" style="display: flex; gap: 10px; width: 100%;">
+                    <button id="btn-next-task" class="btn-primary" style="display: none; margin: 0; font-size: 13px; padding: 12px 5px; flex: 1; background-color: var(--button-color); color: #fff;" onclick="showNewTaskMode()">🔄 Ещё 1 задание</button>
+                    <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; flex: 1; background-color: var(--secondary-bg-color); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3);" onclick="exitToMainMenu()">❌ Выход в меню</button>
+                </div>
+
             </div>
 
             <!-- 2. Главное меню (ЧИСТОЕ) -->
             <div id="action-keyboard" style="padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background-color: var(--secondary-bg-color);">
                 <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px;" onclick="enterAddWordMode()">➕ Добавить слово</button>
                 <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: var(--hint-color);" onclick="showFullDictionary()">📚 Словарь</button>
-                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('🎯 Новое задание')">🎯 Новое задание</button>
+                <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--text-color);" onclick="showNewTaskMode()">🎯 Новое задание</button>
                 <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('📚 Тренировка')">📚 Тренировка</button>
                 <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 112, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('🔥 Интенсив')">🔥 Интенсив</button>
                 <button class="btn-primary" style="margin: 0; font-size: 13px; padding: 12px 5px; background-color: rgba(112, 132, 153, 0.1); color: var(--hint-color);" onclick="showDummyMode('⚙️ Настройки')">⚙️ Настройки</button>

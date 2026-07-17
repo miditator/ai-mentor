@@ -67,10 +67,14 @@ document.getElementById('btn-send').addEventListener('click', () => {
     const inputField = document.getElementById('user-input');
     const text = inputField.value.trim();
     if (!text) return;
+
     addMessageToOutput(text, true);
     inputField.value = '';
+
     if (window.currentAppMode === 'add_word' && typeof handleAddWordInput === 'function') {
         handleAddWordInput(text);
+    } else if (window.currentAppMode === 'task') {
+        handleTaskInput(text); // Обработка ответа на задание
     }
 });
 
@@ -174,5 +178,109 @@ function exitToMainMenu() {
     if (document.getElementById('dummy-keyboard')) document.getElementById('dummy-keyboard').style.display = 'none';
 
     // Обязательно возвращаем основную клавиатуру
+    if (document.getElementById('btn-next-task')) document.getElementById('btn-next-task').style.display = 'none';
     document.getElementById('action-keyboard').style.display = 'grid';
+    document.getElementById('user-input').placeholder = "Напиши слово...";
+    document.getElementById('text-input-row').style.display = 'flex';
+}
+
+// ==========================================
+// РЕЖИМ: НОВОЕ ЗАДАНИЕ
+// ==========================================
+
+function showNewTaskMode() {
+    window.currentAppMode = 'task';
+    document.getElementById('top-bar').innerText = '🎯 Новое задание';
+
+    document.getElementById('profile-card').style.display = 'none';
+    document.getElementById('chat-messages').innerHTML = '<i>ИИ составляет предложение из твоих слов... ⏳</i>';
+
+    // Прячем меню
+    document.getElementById('action-keyboard').style.display = 'none';
+    if (document.getElementById('dictionary-keyboard')) document.getElementById('dictionary-keyboard').style.display = 'none';
+    if (document.getElementById('dummy-keyboard')) document.getElementById('dummy-keyboard').style.display = 'none';
+
+    // Показываем контейнер ввода
+    const inputContainer = document.getElementById('input-container');
+    inputContainer.style.display = 'flex';
+    document.getElementById('text-input-row').style.display = 'flex';
+    document.getElementById('confirm-row').style.display = 'none';
+
+    // ВАЖНО: Показываем кнопку "Ещё 1 задание"
+    document.getElementById('btn-next-task').style.display = 'block';
+
+    const userInput = document.getElementById('user-input');
+    userInput.value = ''; // Очищаем поле от старого ответа
+    userInput.placeholder = "Напиши перевод...";
+    userInput.focus();
+
+    // Запрашиваем задание
+    apiFetch(`/tasks/new?chat_id=${user.id}`)
+        .then(data => {
+            document.getElementById('chat-messages').innerHTML = '';
+            if (data.success) {
+                addMessageToOutput(`<b>Переведи на изучаемый язык:</b><br><br>🇷🇺 <i>${data.phrase}</i>`);
+            } else {
+                addMessageToOutput("❌ Ошибка генерации: " + data.error);
+            }
+        })
+        .catch(err => {
+            document.getElementById('chat-messages').innerHTML = '<i>❌ Ошибка сети.</i>';
+        });
+}
+
+function handleTaskInput(text) {
+    addMessageToOutput("<i>Проверка ИИ... ⏳</i>");
+    document.getElementById('text-input-row').style.display = 'none'; // блокируем ввод временно
+
+    apiFetch('/tasks/check', {
+        method: 'POST',
+        body: JSON.stringify({ chat_id: user.id, answer: text })
+    }).then(data => {
+        if (data.success) {
+            addMessageToOutput(data.feedback);
+            if (data.is_correct) {
+                // Если ответ верный — ничего не делаем.
+                // Пользователь сам нажмет "Ещё 1 задание" или "Выход в меню" внизу экрана.
+            } else {
+                // Если ошибка — разрешаем ввести заново
+                document.getElementById('text-input-row').style.display = 'flex';
+                document.getElementById('user-input').focus();
+            }
+        } else {
+            addMessageToOutput("❌ Ошибка проверки: " + data.error);
+            document.getElementById('text-input-row').style.display = 'flex';
+        }
+    }).catch(err => {
+        addMessageToOutput("❌ Ошибка сети.");
+        document.getElementById('text-input-row').style.display = 'flex';
+    });
+}{
+    addMessageToOutput("<i>Проверка ИИ... ⏳</i>");
+    document.getElementById('text-input-row').style.display = 'none'; // блокируем ввод временно
+
+    apiFetch('/tasks/check', {
+        method: 'POST',
+        body: JSON.stringify({ chat_id: user.id, answer: text })
+    }).then(data => {
+        if (data.success) {
+            addMessageToOutput(data.feedback);
+            if (data.is_correct) {
+                setTimeout(() => {
+                   addMessageToOutput("🎉 <b>Задание выполнено!</b> Возвращаемся в меню...");
+                   setTimeout(exitToMainMenu, 2500);
+                }, 1000);
+            } else {
+                // Если ошибка — разрешаем ввести заново
+                document.getElementById('text-input-row').style.display = 'flex';
+                document.getElementById('user-input').focus();
+            }
+        } else {
+            addMessageToOutput("❌ Ошибка проверки: " + data.error);
+            document.getElementById('text-input-row').style.display = 'flex';
+        }
+    }).catch(err => {
+        addMessageToOutput("❌ Ошибка сети.");
+        document.getElementById('text-input-row').style.display = 'flex';
+    });
 }

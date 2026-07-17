@@ -104,3 +104,76 @@ def get_dictionary(chat_id: int):
     # Убедись, что database импортирован правильно
     words = database.get_full_dictionary(chat_id)
     return {"success": True, "words": words}
+
+class TaskAnswerData(BaseModel):
+    chat_id: int
+    answer: str
+
+@router.get("/tasks/new")
+def get_new_task(chat_id: int):
+    try:
+        # 1. Проверяем, есть ли невыполненное задание
+        active = database.get_active_task(chat_id)
+        if active:
+            return {"success": True, "phrase": active["phrase"]}
+
+        # 2. Узнаем язык пользователя
+        user_config = database.get_user_config(chat_id)
+        target_lang = user_config.get("source_lang", "en") if user_config else "en"
+        lang_name = "английском" if target_lang == "en" else "немецком"
+
+        # 3. Достаем его слова для контекста (чтобы ИИ делал предложения с ними)
+        words = database.get_words_for_grammar_context(chat_id, limit=2)
+        words_str = ", ".join([f"{w['foreign']} ({w['ru']})" for w in words]) if words else "базовые слова"
+
+        # 4. Просим ИИ сгенерировать предложение
+        prompt = f"Сгенерируй одно простое предложение на русском языке для перевода на {lang_name} язык. Постарайся использовать по смыслу эти слова: {words_str}. В ответе напиши ТОЛЬКО русское предложение без кавычек и перевода."
+
+        response = loader.ai_client.chat.completions.create(
+            model=config.MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+        ru_phrase = response.choices[0].message.content.strip()
+
+        # 5. Сохраняем в активные задачи
+        database.save_active_task(chat_id, ru_phrase, "")
+        return {"success": True, "phrase": ru_phrase}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@router.post("/tasks/check")
+def check_task(data: TaskAnswerData):
+    try:
+        active = database.get_active_task(data.chat_id)
+        if not active:
+            return {"success": False, "error": "Нет активного задания."}
+
+        user_config = database.get_user_config(data.chat_id)
+        target_lang = user_config.get("source_lang", "en") if user_config else "en"
+        lang_name = "английский" if target_lang == "en" else "немецкий"
+
+        original_phrase = active["phrase"]
+
+        # Проверяем перевод через ИИ
+        prompt = f"Пользователь перевел фразу '{original_phrase}' на {lang_name} язык так: '{data.answer}'.\nОцени перевод. Если он правильный (допускаются мелкие опечатки), ответь 'ПРАВИЛЬНО'. Если есть ошибка, укажи на нее, объясни коротко и напиши правильный вариант."
+
+        response = loader.ai_client.chat.completions.create(
+            model=config.MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )
+        ai_feedback = response.choices[0].message.content.strip()
+
+        is_correct = ai_feedback.upper().startswith("ПРАВИЛЬНО")
+
+        if is_correct:
+            database.delete_active_task(data.chat_id) # Задание выполнено
+            database.add_to_history(data.chat_id, original_phrase)
+            return {"success": True, "is_correct": True, "feedback": "✅ <b>Отлично! Перевод верный.</b>"}
+        else:
+            database.increment_help_count(data.chat_id) # Считаем попытки
+            return {"success": True, "is_correct": False, "feedback": f"❌ <b>Ошибка:</b>\n{ai_feedback}"}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
