@@ -6,7 +6,7 @@ let taskState = {
     helpClicks: 0
 };
 
-// 🎯 Вспомогательная функция для отрисовки карточки задания
+// 🎯 Функция для отрисовки карточки задания
 function showTaskCard(htmlContent, showHelpBtn = false) {
     const chatContainer = document.getElementById('chat-messages');
 
@@ -49,7 +49,7 @@ function showNewTaskMode(forceNew = false) {
 
     const nextTaskBtn = document.getElementById('btn-next-task');
     nextTaskBtn.style.display = 'block';
-    nextTaskBtn.onclick = () => showNewTaskMode(true);
+    nextTaskBtn.onclick = () => showNewTaskMode(true); // Принудительный сброс
 
     const userInput = document.getElementById('user-input');
     userInput.value = '';
@@ -57,7 +57,7 @@ function showNewTaskMode(forceNew = false) {
 
     showTaskCard(`
         <div style="font-size: 40px; margin-bottom: 15px;">⏳</div>
-        <div style="font-size: 16px; color: var(--hint-color);">ИИ составляет предложение и правило...</div>
+        <div style="font-size: 16px; color: var(--hint-color);">ИИ составляет предложение и тему...</div>
     `);
 
     const url = `/tasks/new?chat_id=${user.id}${forceNew ? '&force=true' : ''}`;
@@ -65,13 +65,14 @@ function showNewTaskMode(forceNew = false) {
     apiFetch(url)
         .then(data => {
             if (data.success) {
+                // Выводим Topic на английском языке (взятый из ответа ИИ)
                 showTaskCard(`
                     <div style="font-size: 13px; color: var(--hint-color); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">Переведи на изучаемый язык:</div>
                     <div style="font-size: 24px; font-weight: bold; color: var(--text-color); margin-bottom: 20px;">${data.phrase}</div>
                     <div style="font-size: 14px; color: var(--text-color); background: rgba(112, 132, 153, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid var(--button-color); text-align: left; width: 100%;">
-                        <b>📚 Rule:</b><br>${data.rule || "General Grammar"}
+                        <b>📚 Topic:</b> ${data.rule || "General Grammar"}
                     </div>
-                `, true);
+                `, true); // true = Показываем кнопку Help
                 userInput.focus();
             } else {
                 showTaskCard(`<div style="font-size: 40px; margin-bottom: 10px;">❌</div><div>Ошибка генерации: ${data.error}</div>`);
@@ -82,18 +83,17 @@ function showNewTaskMode(forceNew = false) {
         });
 }
 
-// 🎯 НОВАЯ ЛОГИКА ПОДСКАЗОК
+// 🎯 ПРАВИЛЬНАЯ ЛОГИКА ПОДСКАЗОК (обращается к /tasks/help)
 function showTaskHelp() {
     taskState.helpClicks++;
     let step = taskState.helpClicks;
 
     showTaskCard(`
         <div style="font-size: 40px; margin-bottom: 15px;">🤖</div>
-        <div style="font-size: 16px; color: var(--hint-color);">ИИ готовит ${step === 1 ? 'подсказку' : 'ответ'}...</div>
+        <div style="font-size: 16px; color: var(--hint-color);">ИИ готовит ${step === 1 ? 'подсказку' : 'подробный ответ'}...</div>
     `);
     document.getElementById('text-input-row').style.display = 'none';
 
-    // Обращаемся к новому эндпоинту на бэкенде
     apiFetch('/tasks/help', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,11 +106,11 @@ function showTaskHelp() {
                     <div style="font-size: 50px; margin-bottom: 10px;">💡</div>
                     <div style="font-size: 16px; color: var(--text-color); text-align: left; line-height: 1.5; margin-bottom: 15px;">${data.feedback}</div>
                     <div style="font-size: 13px; color: var(--hint-color);">Теперь попробуй перевести 👇</div>
-                `, true);
+                `, true); // Снова показываем кнопку Help, но уже "Сдаюсь"
                 document.getElementById('text-input-row').style.display = 'flex';
                 document.getElementById('user-input').focus();
             } else {
-                // Шаг 2: Полный ответ (скрываем поле ввода)
+                // Шаг 2: Сдался (скрываем поле ввода)
                 showTaskCard(`
                     <div style="font-size: 50px; margin-bottom: 10px;">📖</div>
                     <div style="font-size: 16px; color: var(--text-color); text-align: left; line-height: 1.5; margin-bottom: 15px;">${data.feedback}</div>
@@ -141,16 +141,18 @@ function handleTaskInput(text) {
     }).then(data => {
         if (data.success) {
             if (data.is_correct) {
+                // Ответ верный
                 showTaskCard(`
                     <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
                     <div style="font-size: 16px; color: var(--text-color); text-align: left; line-height: 1.5;">${data.feedback}</div>
                 `);
             } else {
+                // Ответ неверный — показываем ошибку и оставляем кнопку Help
                 showTaskCard(`
                     <div style="font-size: 50px; margin-bottom: 10px;">❌</div>
                     <div style="font-size: 16px; color: var(--text-color); text-align: left; line-height: 1.5; margin-bottom: 15px;">${data.feedback}</div>
                     <div style="font-size: 13px; color: var(--hint-color);">Можешь попробовать еще раз 👇</div>
-                `, true); // При ошибке оставляем кнопку Help
+                `, true);
                 document.getElementById('text-input-row').style.display = 'flex';
                 document.getElementById('user-input').focus();
             }
