@@ -31,18 +31,17 @@ function showNewTaskMode() {
     userInput.focus();
 
     // Запрашиваем задание
-    apiFetch(`/tasks/new?chat_id=${user.id}&force=true`)
+   apiFetch(`/tasks/new?chat_id=${user.id}&force=true`)
         .then(data => {
             document.getElementById('chat-messages').innerHTML = '';
             if (data.success) {
                 addMessageToOutput(`<b>Переведи на изучаемый язык:</b><br><br>🇷🇺 <i>${data.phrase}</i>`);
             } else {
-                addMessageToOutput("❌ Ошибка генерации: " + data.error);
+                addMessageToOutput("❌ Ошибка: " + data.error);
             }
         })
         .catch(err => {
-            console.error(err);
-            document.getElementById('chat-messages').innerHTML = '<i>❌ Ошибка связи с сервером.</i>';
+            addMessageToOutput("<i>❌ Ошибка сети.</i>");
         });
 }
 
