@@ -31,7 +31,7 @@ function showNewTaskMode() {
     userInput.focus();
 
     // Запрашиваем задание
-    apiFetch(`/tasks/new?chat_id=${user.id}`)
+    apiFetch(`/tasks/new?chat_id=${user.id}&force=true`)
         .then(data => {
             document.getElementById('chat-messages').innerHTML = '';
             if (data.success) {

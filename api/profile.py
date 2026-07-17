@@ -110,9 +110,13 @@ class TaskAnswerData(BaseModel):
     answer: str
 
 @router.get("/tasks/new")
-def get_new_task(chat_id: int):
+@router.get("/tasks/new")
+def get_new_task(chat_id: int, force: bool = False):
     try:
-        # 1. Проверяем, есть ли невыполненное задание
+        # 1. Если force=True или задачи нет, удаляем старую
+        if force:
+            database.delete_active_task(chat_id)
+
         active = database.get_active_task(chat_id)
         if active:
             return {"success": True, "phrase": active["phrase"]}
