@@ -173,7 +173,7 @@ def get_onboarding_app_menu():
 
     # Ссылка на твой Mini App на GitHub Pages.
     # Не забывай менять версию (?v=...), чтобы сбрасывать кэш в Telegram!
-    web_app_url = "https://miditator.github.io/ai-mentor/?v=6.8"
+    web_app_url = "https://miditator.github.io/ai-mentor/?v=6.9"
 
     app_button = types.InlineKeyboardButton(
         text="⚙️ Настроить профиль",
