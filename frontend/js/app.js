@@ -110,7 +110,7 @@ function showFullDictionary() {
     document.getElementById('dictionary-keyboard').style.display = 'grid';
 
     // Делаем реальный запрос к бэкенду
-    apiFetch(`/api/words/all?chat_id=${user.id}`)
+    apiFetch(`/words/all?chat_id=${user.id}`)
         .then(data => {
             document.getElementById('chat-messages').innerHTML = ''; // Очищаем статус
 
