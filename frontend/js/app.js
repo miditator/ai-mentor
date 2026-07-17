@@ -82,7 +82,10 @@ apiFetch(`/profile?chat_id=${user.id}`)
     .then(data => {
         if (data.is_new_user) {
             switchScreen('screen-onboarding');
-        } else {
+        } else if (window.currentAppMode === 'training') {
+    handleTrainingInput(text);
+        }
+        else {
             updateProfileUI(data);
             switchScreen('screen-main');
         }
@@ -159,6 +162,8 @@ function exitToMainMenu() {
     if (document.getElementById('dictionary-keyboard')) document.getElementById('dictionary-keyboard').style.display = 'none';
     if (document.getElementById('input-container')) document.getElementById('input-container').style.display = 'none';
     if (document.getElementById('dummy-keyboard')) document.getElementById('dummy-keyboard').style.display = 'none';
+    if (document.getElementById('training-menu-keyboard')) document.getElementById('training-menu-keyboard').style.display = 'none';
+    if (document.getElementById('training-active-keyboard')) document.getElementById('training-active-keyboard').style.display = 'none';
 
     // Скрываем кнопку задания
     if (document.getElementById('btn-next-task')) document.getElementById('btn-next-task').style.display = 'none';

@@ -110,7 +110,6 @@ class TaskAnswerData(BaseModel):
     answer: str
 
 @router.get("/tasks/new")
-@router.get("/tasks/new")
 def get_new_task(chat_id: int, force: bool = False):
     try:
         # 1. Если force=True или задачи нет, удаляем старую
@@ -179,5 +178,29 @@ def check_task(data: TaskAnswerData):
             database.increment_help_count(data.chat_id) # Считаем попытки
             return {"success": True, "is_correct": False, "feedback": f"❌ <b>Ошибка:</b>\n{ai_feedback}"}
 
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+class TrainingAnswerData(BaseModel):
+    chat_id: int
+    word_id: int
+    is_correct: bool
+
+@router.get("/train/start")
+def start_training(chat_id: int, count: int = 5):
+    try:
+        # Получаем слова из базы
+        words = database.get_words_for_training(chat_id, limit_new=count)
+        # Форматируем для фронтенда
+        result = [{"id": w[0], "foreign": w[1], "ru": w[2], "score": w[3]} for w in words]
+        return {"success": True, "words": result}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@router.post("/train/check")
+def check_training_answer(data: TrainingAnswerData):
+    try:
+        database.update_word_progress(data.word_id, data.is_correct)
+        return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
