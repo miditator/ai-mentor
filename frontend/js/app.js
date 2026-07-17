@@ -82,7 +82,8 @@ apiFetch(`/profile?chat_id=${user.id}`)
     .then(data => {
         if (data.is_new_user) {
             switchScreen('screen-onboarding');
-        } else if (window.currentAppMode === 'training') {
+        }
+        else if (window.currentAppMode === 'training') {
     handleTrainingInput(text);
         }
         else {

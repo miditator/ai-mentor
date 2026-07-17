@@ -1,13 +1,18 @@
-let trainingState = { words: [], currentIndex: 0 };
+// frontend/js/training.js
 
-function showTrainingMenu() {
-    window.currentAppMode = 'training';
-    document.getElementById('top-bar').innerText = '📚 Тренировка';
-    document.getElementById('profile-card').style.display = 'none';
-    document.getElementById('chat-messages').innerHTML = 'Выберите количество слов:';
+let trainingState = {
+    words: [],
+    currentIndex: 0,
+    swapped: false,       // Направление перевода
+    guessesNeeded: 3,     // Сколько раз угадать
+    currentGuesses: 0     // Сколько раз уже угадали это слово
+};
 
-    document.getElementById('action-keyboard').style.display = 'none';
-    document.getElementById('training-menu-keyboard').style.display = 'grid';
+// Функция переключения направления
+function toggleSwap() {
+    trainingState.swapped = !trainingState.swapped;
+    addMessageToOutput(`<i>Режим изменен: ${trainingState.swapped ? "🇷🇺 Русский → 🇬🇧 Иностр." : "🇬🇧 Иностр. → 🇷🇺 Русский"}</i>`);
+    showCurrentWord();
 }
 
 function startTraining(count) {
@@ -18,9 +23,10 @@ function startTraining(count) {
 
     apiFetch(`/train/start?chat_id=${user.id}&count=${count}`)
         .then(data => {
-            if (data.success && data.words.length > 0) {
+            if (data.success && data.words && data.words.length > 0) {
                 trainingState.words = data.words;
                 trainingState.currentIndex = 0;
+                trainingState.currentGuesses = 0;
                 showCurrentWord();
             } else {
                 addMessageToOutput("Нет слов для тренировки.");
@@ -30,35 +36,46 @@ function startTraining(count) {
 
 function showCurrentWord() {
     const word = trainingState.words[trainingState.currentIndex];
-    addMessageToOutput(`Слово ${trainingState.currentIndex + 1}/${trainingState.words.length}:<br><b>${word.foreign}</b>`);
+    const question = trainingState.swapped ? word.ru : word.foreign;
+    addMessageToOutput(`Слово ${trainingState.currentIndex + 1}/${trainingState.words.length} (Осталось угадать: ${trainingState.guessesNeeded - trainingState.currentGuesses}):<br><b>${question}</b>`);
 }
 
 function handleTrainingInput(text) {
     const word = trainingState.words[trainingState.currentIndex];
-    const isCorrect = text.toLowerCase().trim() === word.ru.toLowerCase().trim();
+    const correctAnswer = trainingState.swapped ? word.foreign : word.ru;
 
-    // Отправляем результат на сервер
-    apiFetch('/train/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: user.id, word_id: word.id, is_correct: isCorrect })
-    });
+    const isCorrect = text.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
 
     if (isCorrect) {
-        addMessageToOutput("✅ Верно!");
-    } else {
-        addMessageToOutput(`❌ Ошибка. Правильно: <b>${word.ru}</b>`);
-    }
+        trainingState.currentGuesses++;
+        addMessageToOutput(`✅ Верно! (${trainingState.currentGuesses}/${trainingState.guessesNeeded})`);
 
-    trainingState.currentIndex++;
-    if (trainingState.currentIndex < trainingState.words.length) {
-        setTimeout(showCurrentWord, 1500);
+        // Если угадали нужное кол-во раз
+        if (trainingState.currentGuesses >= trainingState.guessesNeeded) {
+            // Отправляем результат в БД
+            apiFetch('/train/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: user.id, word_id: word.id, is_correct: true })
+            });
+
+            trainingState.currentIndex++;
+            trainingState.currentGuesses = 0;
+
+            if (trainingState.currentIndex < trainingState.words.length) {
+                setTimeout(showCurrentWord, 1000);
+            } else {
+                addMessageToOutput("🎉 Тренировка завершена!");
+                document.getElementById('input-container').style.display = 'none';
+            }
+        }
     } else {
-        addMessageToOutput("🎉 Тренировка завершена!");
+        addMessageToOutput(`❌ Ошибка. Правильно: <b>${correctAnswer}</b>. Попробуй еще раз.`);
     }
 }
 
 function showHelp() {
     const word = trainingState.words[trainingState.currentIndex];
-    addMessageToOutput(`💡 Подсказка: ${word.ru}`);
+    const answer = trainingState.swapped ? word.foreign : word.ru;
+    addMessageToOutput(`💡 Подсказка: <b>${answer}</b>. Продолжаем тренировку!`);
 }
